@@ -1,0 +1,19 @@
+namespace AccountInfo;
+
+table Pubkey {
+  key: [uint8];
+}
+
+table AccountInfo {
+  pubkey: Pubkey;
+  lamports: uint64;
+  owner: Pubkey;
+  executable: bool;
+  rent_epoch: uint64;
+  data: [uint8];
+  write_version: uint64;
+  slot: uint64;
+  is_startup: bool;
+}
+
+root_type AccountInfo;

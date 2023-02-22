@@ -1,0 +1,23 @@
+[package]
+name = "solana-geyser-plugin-scaffold"
+version = "1.11.2"
+edition = "2021"
+description = "The simplest Solana Geyser Plugin ever"
+authors = ["mwrites <mwrites.pub@pm.me>"]
+repository = "https://github.com/mwrites/solana-geyser-plugin-scaffold"
+license = "Apache-2.0"
+keywords = ["solana", "geyser", "plugin", "solana-geyser-plugin"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+solana-geyser-plugin-interface = { version = "=1.11.1" }
+solana-logger = { version = "=1.11.1" }
+log = "0.4.14"
+bs58 = "0.4.0"
+zmq = "0.10.0"
+flatbuffers = { version = "2.1.2" }
+solana-sdk = { version = "1.11.1" }
+solana-transaction-status = { version = "1.11.1" }
+solana-program = { version = "1.11.1" }

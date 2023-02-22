@@ -1,0 +1,10 @@
+namespace MetadataOffChain;
+
+table MetadataOffChain {
+  pubkey: string;
+  uri: string;
+  slot: uint64;
+  is_startup: bool;
+}
+
+root_type MetadataOffChain;
