@@ -55,7 +55,7 @@ impl GeyserPlugin for GeyserPluginHook {
         config_file: &str,
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
         solana_logger::setup_with_default("info");
-        info!("[on_load] - config_file: {:#?}", config_file);
+        // info!("[on_load] - config_file: {:#?}", config_file);
 
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::PUSH).unwrap();
@@ -64,7 +64,7 @@ impl GeyserPlugin for GeyserPluginHook {
         socket.set_sndhwm(sndhwm).unwrap();
         socket.bind("tcp://*:5555").unwrap();
 
-        info!("[on_load] - socket created");
+        // info!("[on_load] - socket created");
 
         self.socket = Some(Arc::new(Mutex::new(socket)));
         self.serializer = Some(flatbuffer::FlatBufferSerialization {});
@@ -75,7 +75,7 @@ impl GeyserPlugin for GeyserPluginHook {
     /// Lifecycle: the plugin will be unloaded by the plugin manager
     /// Note: Do any cleanup necessary.
     fn on_unload(&mut self) {
-        info!("[on_unload]");
+        // info!("[on_unload]");
     }
 
     /// Event: an account has been updated at slot
@@ -102,10 +102,10 @@ impl GeyserPlugin for GeyserPluginHook {
                     bs58::encode(acc.pubkey).into_string(),
                     bs58::encode(acc.owner).into_string(),
                 );
-                info!(
-                    "[update_account] - account: {:#?}, slot:{:#?}, is_startup:{:#?}",
-                    acc_string, slot, is_startup
-                );
+                // info!(
+                // "[update_account] - account: {:#?}, slot:{:#?}, is_startup:{:#?}",
+                // acc_string, slot, is_startup
+                // );
 
                 self.send(acc, slot, is_startup);
             }
@@ -118,7 +118,7 @@ impl GeyserPlugin for GeyserPluginHook {
     fn notify_end_of_startup(
         &mut self,
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
-        info!("[notify_end_of_startup]");
+        // info!("[notify_end_of_startup]");
         Ok(())
     }
 
@@ -129,10 +129,10 @@ impl GeyserPlugin for GeyserPluginHook {
         parent: Option<u64>,
         status: SlotStatus,
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
-        info!(
-            "[update_slot_status], slot:{:#?}, parent:{:#?}, status:{:#?}",
-            slot, parent, status
-        );
+        // info!(
+        // "[update_slot_status], slot:{:#?}, parent:{:#?}, status:{:#?}",
+        // slot, parent, status
+        // );
         Ok(())
     }
 
@@ -145,7 +145,7 @@ impl GeyserPlugin for GeyserPluginHook {
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
         // match transaction {
         //     ReplicaTransactionInfoVersions::V0_0_1(transaction_info) => {
-        //         // info!("[notify_transaction], transaction:{:#?}, slot:{:#?}", transaction_info.is_vote, slot);
+        // info!("[notify_transaction], transaction:{:#?}, slot:{:#?}", transaction_info.is_vote, slot);
         //     }
         // }
         Ok(())
@@ -157,19 +157,19 @@ impl GeyserPlugin for GeyserPluginHook {
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
         match blockinfo {
             ReplicaBlockInfoVersions::V0_0_1(blockinfo) => {
-                info!("[notify_block_metadata], block_info:{:#?}", blockinfo);
+                // info!("[notify_block_metadata], block_info:{:#?}", blockinfo);
             }
         }
         Ok(())
     }
 
     fn account_data_notifications_enabled(&self) -> bool {
-        info!("[account_data_notifications_enabled] - plugin interface is asking if data notifs should be enabled?");
+        // info!("[account_data_notifications_enabled] - plugin interface is asking if data notifs should be enabled?");
         true
     }
 
     fn transaction_notifications_enabled(&self) -> bool {
-        info!("[transaction_notifications_enabled] - plugin interface is asking if transactions notifs should be enabled?");
+        // info!("[transaction_notifications_enabled] - plugin interface is asking if transactions notifs should be enabled?");
         true
     }
 }
