@@ -1,0 +1,8 @@
+namespace Slot;
+
+table Slot {
+  slot: uint64;
+  status: uint8;
+}
+
+root_type Slot;

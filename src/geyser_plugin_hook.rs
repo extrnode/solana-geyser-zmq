@@ -1,11 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use solana_geyser_plugin_interface::geyser_plugin_interface::ReplicaAccountInfoV2;
-
-use crate::flatbuffer;
+use crate::{config::Config, flatbuffer};
 
 use {
-    log::*,
     solana_geyser_plugin_interface::geyser_plugin_interface::{
         GeyserPlugin, GeyserPluginError, ReplicaAccountInfoVersions, ReplicaBlockInfoVersions,
         ReplicaTransactionInfoVersions, SlotStatus,
@@ -21,12 +18,7 @@ pub struct GeyserPluginHook {
 }
 
 impl GeyserPluginHook {
-    fn send<'a>(&mut self, account: &'a ReplicaAccountInfoV2<'a>, slot: u64, is_startup: bool) {
-        let data = self
-            .serializer
-            .unwrap()
-            .serialize_account(account, slot, is_startup);
-
+    fn send<'a>(&mut self, data: Vec<u8>) {
         self.socket
             .clone()
             .unwrap()
@@ -54,15 +46,18 @@ impl GeyserPlugin for GeyserPluginHook {
         &mut self,
         config_file: &str,
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
+        let cfg = Config::read(config_file).unwrap();
+
         solana_logger::setup_with_default("info");
-        // info!("[on_load] - config_file: {:#?}", config_file);
 
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::PUSH).unwrap();
 
         let sndhwm = 100_000_000;
         socket.set_sndhwm(sndhwm).unwrap();
-        socket.bind("tcp://*:5555").unwrap();
+        socket
+            .bind(format!("tcp://*:{}", cfg.port).as_str())
+            .unwrap();
 
         // info!("[on_load] - socket created");
 
@@ -97,17 +92,12 @@ impl GeyserPlugin for GeyserPluginHook {
                 });
             }
             ReplicaAccountInfoVersions::V0_0_2(acc) => {
-                let acc_string = format!(
-                    "pubkey: {}, owner: {}",
-                    bs58::encode(acc.pubkey).into_string(),
-                    bs58::encode(acc.owner).into_string(),
-                );
-                // info!(
-                // "[update_account] - account: {:#?}, slot:{:#?}, is_startup:{:#?}",
-                // acc_string, slot, is_startup
-                // );
+                let data = self
+                    .serializer
+                    .unwrap()
+                    .serialize_account(acc, slot, is_startup);
 
-                self.send(acc, slot, is_startup);
+                self.send(data);
             }
         }
         Ok(())
@@ -126,13 +116,13 @@ impl GeyserPlugin for GeyserPluginHook {
     fn update_slot_status(
         &mut self,
         slot: u64,
-        parent: Option<u64>,
+        _parent: Option<u64>,
         status: SlotStatus,
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
-        // info!(
-        // "[update_slot_status], slot:{:#?}, parent:{:#?}, status:{:#?}",
-        // slot, parent, status
-        // );
+        let data = self.serializer.unwrap().serialize_slot(slot, status);
+
+        self.send(data);
+
         Ok(())
     }
 
@@ -153,13 +143,13 @@ impl GeyserPlugin for GeyserPluginHook {
 
     fn notify_block_metadata(
         &mut self,
-        blockinfo: ReplicaBlockInfoVersions,
+        _blockinfo: ReplicaBlockInfoVersions,
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
-        match blockinfo {
-            ReplicaBlockInfoVersions::V0_0_1(blockinfo) => {
-                // info!("[notify_block_metadata], block_info:{:#?}", blockinfo);
-            }
-        }
+        // match blockinfo {
+        // ReplicaBlockInfoVersions::V0_0_1(blockinfo) => {
+        // info!("[notify_block_metadata], block_info:{:#?}", blockinfo);
+        // }
+        // }
         Ok(())
     }
 

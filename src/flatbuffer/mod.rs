@@ -3,21 +3,22 @@ use account_info_generated::account_info::{
     AccountInfo, AccountInfoArgs, Pubkey as AccountInfoPubkey, PubkeyArgs as AccountInfoPubkeyArgs,
 };
 use flatbuffers::FlatBufferBuilder;
-use solana_geyser_plugin_interface::geyser_plugin_interface::ReplicaAccountInfoV2;
+use solana_geyser_plugin_interface::geyser_plugin_interface::{ReplicaAccountInfoV2, SlotStatus};
 pub use solana_program::pubkey::Pubkey;
+
+use self::slot_generated::slot::{Slot, SlotArgs};
 
 #[allow(clippy::all)]
 mod account_info_generated;
 #[allow(clippy::all)]
-mod metadata_generated;
-#[allow(clippy::all)]
-mod metadata_off_chain_generated;
-#[allow(clippy::all)]
-mod transaction_info_generated;
+mod slot_generated;
 
 /// Struct which implements FlatBuffer serialization for accounts, block metadata and transactions data
 #[derive(Debug, Copy, Clone)]
 pub struct FlatBufferSerialization {}
+
+const BYTE_PREFIX_ACCOUNT: u8 = 0;
+const BYTE_PREFIX_SLOT: u8 = 1;
 
 impl FlatBufferSerialization {
     pub fn serialize_account<'a>(
@@ -66,6 +67,33 @@ impl FlatBufferSerialization {
         );
 
         builder.finish(account_info, None);
-        builder.finished_data().to_vec()
+
+        let mut output = vec![BYTE_PREFIX_ACCOUNT];
+        output.extend(builder.finished_data().to_vec());
+
+        output
+    }
+
+    pub fn serialize_slot<'a>(&self, slot: u64, status: SlotStatus) -> Vec<u8> {
+        let mut builder = FlatBufferBuilder::new();
+
+        let s = Slot::create(
+            &mut builder,
+            &SlotArgs {
+                slot,
+                status: match status {
+                    SlotStatus::Processed => 0,
+                    SlotStatus::Rooted => 1,
+                    SlotStatus::Confirmed => 2,
+                },
+            },
+        );
+
+        builder.finish(s, None);
+
+        let mut output = vec![BYTE_PREFIX_SLOT];
+        output.extend(builder.finished_data().to_vec());
+
+        output
     }
 }
