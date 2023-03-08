@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use log::info;
+
 use crate::{config::Config, flatbuffer};
 
 use {
@@ -14,7 +16,6 @@ use {
 #[derive(Default)]
 pub struct GeyserPluginHook {
     socket: Option<Arc<Mutex<zmq::Socket>>>,
-    serializer: Option<flatbuffer::FlatBufferSerialization>,
 }
 
 impl GeyserPluginHook {
@@ -59,10 +60,9 @@ impl GeyserPlugin for GeyserPluginHook {
             .bind(format!("tcp://*:{}", cfg.port).as_str())
             .unwrap();
 
-        // info!("[on_load] - socket created");
+        info!("[on_load] - socket created");
 
         self.socket = Some(Arc::new(Mutex::new(socket)));
-        self.serializer = Some(flatbuffer::FlatBufferSerialization {});
 
         Ok(())
     }
@@ -87,17 +87,21 @@ impl GeyserPlugin for GeyserPluginHook {
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
         match account {
             ReplicaAccountInfoVersions::V0_0_1(_) => {
+                info!("[update_account V0_0_1]");
+
                 return Err(GeyserPluginError::AccountsUpdateError {
                     msg: "ReplicaAccountInfoVersions::V0_0_1 it not supported".to_string(),
                 });
             }
             ReplicaAccountInfoVersions::V0_0_2(acc) => {
-                let data = self
-                    .serializer
-                    .unwrap()
-                    .serialize_account(acc, slot, is_startup);
+                info!("[update_account V0_0_2]");
+
+                let serializer = flatbuffer::FlatBufferSerialization {};
+                let data = serializer.serialize_account(acc, slot, is_startup);
+                info!("[update_account V0_0_2: serialized]");
 
                 self.send(data);
+                info!("[update_account V0_0_2: sent]");
             }
         }
         Ok(())
@@ -108,7 +112,7 @@ impl GeyserPlugin for GeyserPluginHook {
     fn notify_end_of_startup(
         &mut self,
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
-        // info!("[notify_end_of_startup]");
+        info!("[notify_end_of_startup]");
         Ok(())
     }
 
@@ -119,9 +123,14 @@ impl GeyserPlugin for GeyserPluginHook {
         _parent: Option<u64>,
         status: SlotStatus,
     ) -> solana_geyser_plugin_interface::geyser_plugin_interface::Result<()> {
-        let data = self.serializer.unwrap().serialize_slot(slot, status);
+        info!("[update_slot_status]");
+
+        let serializer = flatbuffer::FlatBufferSerialization {};
+        let data = serializer.serialize_slot(slot, status);
+        info!("[update_slot_status: serialized]");
 
         self.send(data);
+        info!("[update_slot_status: sent]");
 
         Ok(())
     }
