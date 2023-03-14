@@ -29,25 +29,31 @@ pub struct Inner {
 
 impl GeyserPluginHook {
     #[inline]
-    fn with_inner<T>(
+    fn with_inner(
         &self,
         uninit: impl FnOnce() -> GeyserPluginError,
-        f: impl FnOnce(&Arc<Inner>) -> anyhow::Result<T>,
-    ) -> Result<T> {
+        f: impl FnOnce(&Arc<Inner>) -> anyhow::Result<()>,
+    ) -> Result<()> {
         match self.0 {
-            Some(ref inner) => f(inner).map_err(|e| {
-                if let Some(e) = e.downcast_ref::<GeyserError>() {
-                    match e {
-                        GeyserError::ZmqSend => {
-                            inner.metrics.send_errs.log(1);
+            Some(ref inner) => match f(inner) {
+                Ok(_) => Ok(()),
+                Err(e) => {
+                    inner.metrics.errs.log(1);
+
+                    if let Some(e) = e.downcast_ref::<GeyserError>() {
+                        // in case of zmq error do not fill the log, just inc the err counter
+                        match e {
+                            GeyserError::ZmqSend => {
+                                inner.metrics.send_errs.log(1);
+                            }
                         }
+
+                        Ok(())
+                    } else {
+                        Err(GeyserPluginError::Custom(e.into()))
                     }
                 }
-
-                inner.metrics.errs.log(1);
-
-                GeyserPluginError::Custom(e.into())
-            }),
+            },
             None => Err(uninit()),
         }
     }
