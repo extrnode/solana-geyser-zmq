@@ -4,6 +4,8 @@ use serde::Deserialize;
 pub struct Config {
     pub zmq_port: usize,
     pub zmq_no_wait: bool,
+
+    pub filters_url: String,
 }
 
 impl Config {

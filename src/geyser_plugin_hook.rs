@@ -1,13 +1,21 @@
 use crate::{
     config::Config,
+    filters::load_tx_filters,
     flatbuffer::{self, AccountUpdate},
     metrics::Metrics,
 };
 use log::{error, info};
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use solana_program::pubkey::Pubkey;
-use std::fmt::{Debug, Formatter};
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Formatter},
+    sync::RwLock,
+};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -25,6 +33,7 @@ pub struct Inner {
     socket: Mutex<zmq::Socket>,
     zmq_flag: i32,
     metrics: Arc<Metrics>,
+    filters: Arc<RwLock<HashMap<Pubkey, bool>>>,
 }
 
 impl GeyserPluginHook {
@@ -90,11 +99,16 @@ impl GeyserPlugin for GeyserPluginHook {
 
         info!("[on_load] - socket created");
 
+        let filters = Arc::new(RwLock::new(HashMap::new()));
+
         self.0 = Some(Arc::new(Inner {
             socket: Mutex::new(socket),
             zmq_flag: if cfg.zmq_no_wait { zmq::DONTWAIT } else { 0 },
             metrics,
+            filters: Arc::clone(&filters),
         }));
+
+        thread::spawn(|| load_tx_filters(filters, cfg.filters_url));
 
         Ok(())
     }
@@ -187,7 +201,15 @@ impl GeyserPlugin for GeyserPluginHook {
         transaction: ReplicaTransactionInfoVersions,
         slot: u64,
     ) -> Result<()> {
-        Ok(())
+        self.with_inner(
+            || GeyserPluginError::TransactionUpdateError { msg: UNINIT.into() },
+            |inner| {
+                let filters = inner.filters.read().unwrap();
+                info!("filters {:?}", filters.keys());
+
+                Ok(())
+            },
+        )
     }
 
     fn notify_block_metadata(&mut self, _blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
@@ -199,7 +221,7 @@ impl GeyserPlugin for GeyserPluginHook {
     }
 
     fn transaction_notifications_enabled(&self) -> bool {
-        false
+        true
     }
 }
 
