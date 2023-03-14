@@ -1,28 +1,55 @@
 use crate::{
     config::Config,
     flatbuffer::{self, AccountUpdate},
+    metrics::Metrics,
 };
-use log::info;
+use log::{error, info};
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use solana_program::pubkey::Pubkey;
-use std::sync::{Arc, Mutex};
-
 use std::fmt::{Debug, Formatter};
+use std::sync::{Arc, Mutex};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum GeyserError {
+    #[error("zmq send error")]
+    ZmqSend,
+}
+const UNINIT: &str = "ZMQ plugin not initialized yet!";
+
 /// This is the main object returned bu our dynamic library in entrypoint.rs
 #[derive(Default)]
-pub struct GeyserPluginHook {
-    socket: Option<Arc<Mutex<zmq::Socket>>>,
+pub struct GeyserPluginHook(Option<Arc<Inner>>);
+
+pub struct Inner {
+    socket: Mutex<zmq::Socket>,
+    zmq_flag: i32,
+    metrics: Arc<Metrics>,
 }
 
 impl GeyserPluginHook {
-    fn send<'a>(&mut self, data: Vec<u8>) {
-        self.socket
-            .clone()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .send(data, 0)
-            .unwrap();
+    #[inline]
+    fn with_inner<T>(
+        &self,
+        uninit: impl FnOnce() -> GeyserPluginError,
+        f: impl FnOnce(&Arc<Inner>) -> anyhow::Result<T>,
+    ) -> Result<T> {
+        match self.0 {
+            Some(ref inner) => f(inner).map_err(|e| {
+                if let Some(e) = e.downcast_ref::<GeyserError>() {
+                    match e {
+                        GeyserError::ZmqSend => {
+                            inner.metrics.send_errs.log(1);
+                        }
+                    }
+                }
+
+                inner.metrics.errs.log(1);
+
+                GeyserPluginError::Custom(e.into())
+            }),
+            None => Err(uninit()),
+        }
     }
 }
 
@@ -42,6 +69,8 @@ impl GeyserPlugin for GeyserPluginHook {
     fn on_load(&mut self, config_file: &str) -> Result<()> {
         let cfg = Config::read(config_file).unwrap();
 
+        let metrics = Metrics::new_rc();
+
         solana_logger::setup_with_default("info");
 
         let ctx = zmq::Context::new();
@@ -50,12 +79,16 @@ impl GeyserPlugin for GeyserPluginHook {
         let sndhwm = 1_000_000_000;
         socket.set_sndhwm(sndhwm).unwrap();
         socket
-            .bind(format!("tcp://*:{}", cfg.port).as_str())
+            .bind(format!("tcp://*:{}", cfg.zmq_port).as_str())
             .unwrap();
 
         info!("[on_load] - socket created");
 
-        self.socket = Some(Arc::new(Mutex::new(socket)));
+        self.0 = Some(Arc::new(Inner {
+            socket: Mutex::new(socket),
+            zmq_flag: if cfg.zmq_no_wait { zmq::DONTWAIT } else { 0 },
+            metrics,
+        }));
 
         Ok(())
     }
@@ -63,12 +96,6 @@ impl GeyserPlugin for GeyserPluginHook {
     /// Lifecycle: the plugin will be unloaded by the plugin manager
     /// Note: Do any cleanup necessary.
     fn on_unload(&mut self) {}
-
-    /// Lifecycle: called when all accounts have been notified when the validator
-    /// restores the AccountsDb from snapshots at startup.
-    fn notify_end_of_startup(&mut self) -> Result<()> {
-        Ok(())
-    }
 
     /// Event: an account has been updated at slot
     /// - When `is_startup` is true, it indicates the account is loaded from
@@ -86,41 +113,42 @@ impl GeyserPlugin for GeyserPluginHook {
             return Ok(());
         }
 
-        match account {
-            ReplicaAccountInfoVersions::V0_0_1(acc) => {
-                let key = Pubkey::new_from_array(acc.pubkey.try_into().map_err(
-                    |_| -> GeyserPluginError {
-                        GeyserPluginError::AccountsUpdateError {
-                            msg: "cannot decode pubkey".to_string(),
-                        }
-                    },
-                )?);
+        self.with_inner(
+            || GeyserPluginError::AccountsUpdateError { msg: UNINIT.into() },
+            |inner| match account {
+                ReplicaAccountInfoVersions::V0_0_1(acc) => {
+                    let key = Pubkey::new_from_array(acc.pubkey.try_into()?);
+                    let owner = Pubkey::new_from_array(acc.owner.try_into()?);
 
-                let owner = Pubkey::new_from_array(acc.owner.try_into().map_err(
-                    |_| -> GeyserPluginError {
-                        GeyserPluginError::AccountsUpdateError {
-                            msg: "cannot decode owner".to_string(),
-                        }
-                    },
-                )?);
+                    let data = flatbuffer::serialize_account(&AccountUpdate {
+                        key,
+                        lamports: acc.lamports,
+                        owner,
+                        executable: acc.executable,
+                        rent_epoch: acc.rent_epoch,
+                        data: acc.data.to_vec(),
+                        write_version: acc.write_version,
+                        slot,
+                        is_startup,
+                    });
 
-                let data = flatbuffer::serialize_account(&AccountUpdate {
-                    key,
-                    lamports: acc.lamports,
-                    owner,
-                    executable: acc.executable,
-                    rent_epoch: acc.rent_epoch,
-                    data: acc.data.to_vec(),
-                    write_version: acc.write_version,
-                    slot,
-                    is_startup,
-                });
+                    inner
+                        .socket
+                        .lock()
+                        .unwrap()
+                        .send(data, inner.zmq_flag)
+                        .map_err(|_| GeyserError::ZmqSend)?;
 
-                self.send(data);
+                    Ok(())
+                }
+            },
+        )
+    }
 
-                Ok(())
-            }
-        }
+    /// Lifecycle: called when all accounts have been notified when the validator
+    /// restores the AccountsDb from snapshots at startup.
+    fn notify_end_of_startup(&mut self) -> Result<()> {
+        Ok(())
     }
 
     /// Event: a slot status is updated.
@@ -130,10 +158,20 @@ impl GeyserPlugin for GeyserPluginHook {
         _parent: Option<u64>,
         status: SlotStatus,
     ) -> Result<()> {
-        let data = flatbuffer::serialize_slot(slot, status);
-        self.send(data);
+        self.with_inner(
+            || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
+            |inner| {
+                let data = flatbuffer::serialize_slot(slot, status);
+                inner
+                    .socket
+                    .lock()
+                    .unwrap()
+                    .send(data, inner.zmq_flag)
+                    .map_err(|_| GeyserError::ZmqSend)?;
 
-        Ok(())
+                Ok(())
+            },
+        )
     }
 
     /// Event: a transaction is updated at a slot.

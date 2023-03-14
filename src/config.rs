@@ -1,9 +1,9 @@
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Config {
-    pub port: usize,
+    pub zmq_port: usize,
+    pub zmq_no_wait: bool,
 }
 
 impl Config {
