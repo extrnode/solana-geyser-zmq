@@ -1,8 +1,10 @@
 namespace Slot;
 
+enum Status: byte { Processed, Rooted, Confirmed }
+
 table Slot {
   slot: uint64;
-  status: uint8;
+  status: Status;
 }
 
 root_type Slot;

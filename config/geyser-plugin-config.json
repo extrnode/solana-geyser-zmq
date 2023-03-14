@@ -1,4 +1,4 @@
 {
     "libpath": "../target/release/libsolana_geyser_plugin_scaffold.so",
-    "port": 5555
+    "port": 2000
 }
