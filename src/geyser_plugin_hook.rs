@@ -6,8 +6,15 @@ use crate::{
 use log::{error, info};
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use solana_program::pubkey::Pubkey;
-use std::fmt::{Debug, Formatter};
-use std::sync::{Arc, Mutex};
+use std::{
+    fmt::{Debug, Formatter},
+    sync::atomic::Ordering,
+    time::Duration,
+};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -38,18 +45,18 @@ impl GeyserPluginHook {
             Some(ref inner) => match f(inner) {
                 Ok(_) => Ok(()),
                 Err(e) => {
-                    inner.metrics.errs.log(1);
-
                     if let Some(e) = e.downcast_ref::<GeyserError>() {
                         // in case of zmq error do not fill the log, just inc the err counter
                         match e {
                             GeyserError::ZmqSend => {
-                                inner.metrics.send_errs.log(1);
+                                inner.metrics.send_errs.fetch_add(1, Ordering::Relaxed);
                             }
                         }
 
                         Ok(())
                     } else {
+                        inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
+
                         Err(GeyserPluginError::Custom(e.into()))
                     }
                 }
@@ -73,12 +80,10 @@ impl GeyserPlugin for GeyserPluginHook {
     /// include a field "libpath" indicating the full path
     /// name of the shared library implementing this interface.
     fn on_load(&mut self, config_file: &str) -> Result<()> {
-        let cfg = Config::read(config_file).unwrap();
-
-        let metrics = Metrics::new_rc();
-
         solana_logger::setup_with_default("info");
 
+        let cfg = Config::read(config_file).unwrap();
+        let metrics = Metrics::new_rc();
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::PUSH).unwrap();
 
@@ -93,8 +98,12 @@ impl GeyserPlugin for GeyserPluginHook {
         self.0 = Some(Arc::new(Inner {
             socket: Mutex::new(socket),
             zmq_flag: if cfg.zmq_no_wait { zmq::DONTWAIT } else { 0 },
-            metrics,
+            metrics: metrics.clone(),
         }));
+
+        thread::spawn(move || {
+            metrics.spin(Duration::from_secs(10));
+        });
 
         Ok(())
     }

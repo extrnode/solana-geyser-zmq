@@ -1,5 +1,5 @@
 {
-    "libpath": "../target/release/libsolana_geyser_plugin_scaffold.so",
+    "libpath": "../target/release/libsolana_geyser_plugin_scaffold.dylib",
     "zmq_port": 2000,
     "zmq_no_wait": true
 }
