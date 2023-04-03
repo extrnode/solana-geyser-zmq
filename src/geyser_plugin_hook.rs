@@ -204,8 +204,29 @@ impl GeyserPlugin for GeyserPluginHook {
         self.with_inner(
             || GeyserPluginError::TransactionUpdateError { msg: UNINIT.into() },
             |inner| {
-                let filters = inner.filters.read().unwrap();
-                info!("filters {:?}", filters.keys());
+                match transaction {
+                    ReplicaTransactionInfoVersions::V0_0_1(tx) => {
+                        let should_send: bool = {
+                            let msg = tx.transaction.message();
+                            let filters = inner.filters.read().unwrap();
+
+                            msg.account_keys()
+                                .iter()
+                                .find(|&&x| filters.contains_key(&x))
+                                .is_some()
+                        };
+
+                        if should_send {
+                            let data = flatbuffer::serialize_tx(tx, slot);
+                            inner
+                                .socket
+                                .lock()
+                                .unwrap()
+                                .send(data, inner.zmq_flag)
+                                .map_err(|_| GeyserError::ZmqSend)?;
+                        }
+                    }
+                };
 
                 Ok(())
             },

@@ -3,7 +3,7 @@ use account_info_generated::account_info::{
     AccountInfo, AccountInfoArgs, Pubkey as AccountInfoPubkey, PubkeyArgs as AccountInfoPubkeyArgs,
 };
 use flatbuffers::FlatBufferBuilder;
-use solana_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
+use solana_geyser_plugin_interface::geyser_plugin_interface::{ReplicaTransactionInfo, SlotStatus};
 pub use solana_program::pubkey::Pubkey;
 
 use self::slot_generated::slot::{Slot, SlotArgs, Status};
@@ -19,6 +19,7 @@ pub struct FlatBufferSerialization {}
 
 const BYTE_PREFIX_ACCOUNT: u8 = 0;
 const BYTE_PREFIX_SLOT: u8 = 1;
+const BYTE_PREFIX_TX: u8 = 2;
 
 pub struct AccountUpdate {
     /// The account's public key
@@ -104,6 +105,17 @@ pub fn serialize_slot<'a>(slot: u64, status: SlotStatus) -> Vec<u8> {
     builder.finish(s, None);
 
     let mut output = vec![BYTE_PREFIX_SLOT];
+    output.extend(builder.finished_data().to_vec());
+
+    output
+}
+
+pub fn serialize_tx<'a>(tx: &'a ReplicaTransactionInfo, slot: u64) -> Vec<u8> {
+    let mut builder = FlatBufferBuilder::new();
+
+    builder.finish(s, None);
+
+    let mut output = vec![BYTE_PREFIX_TX];
     output.extend(builder.finished_data().to_vec());
 
     output
