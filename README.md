@@ -10,6 +10,12 @@ That dynamic library is provided to the validator at runtime. The validator can 
 
 The library can then feed on these data and take further actions, such as logging, inserting the data into a DB or a consumer/producer system, etc.
 
+### Building
+If a specific rust version not used for building, segmentation faults occur during validator start. Current mainnet ver is 1.13.6 so it's recommended to use rust 1.60.0 [issue #30140](https://github.com/solana-labs/solana/issues/30140#issuecomment-1418796314).
+```
+    docker run --rm -v $(PWD):/app -w /app rust:1.60.0 cargo b --release
+```
+
 ### Geyser Plugin Config
 
 The dynamic library path is provided to the validator using the `--geyser-plugin-config` parameter.

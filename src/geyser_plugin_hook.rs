@@ -1,7 +1,7 @@
 use crate::{
     config::Config,
     filters::load_tx_filters,
-    flatbuffer::{self, AccountUpdate},
+    flatbuffer::{self, AccountUpdate, TransactionUpdate},
     metrics::Metrics,
 };
 use log::{error, info};
@@ -10,7 +10,9 @@ use solana_program::pubkey::Pubkey;
 use std::{
     collections::HashMap,
     fmt::{Debug, Formatter},
+    sync::atomic::Ordering,
     sync::RwLock,
+    time::Duration,
 };
 use std::{
     sync::{Arc, Mutex},
@@ -47,18 +49,18 @@ impl GeyserPluginHook {
             Some(ref inner) => match f(inner) {
                 Ok(_) => Ok(()),
                 Err(e) => {
-                    inner.metrics.errs.log(1);
-
                     if let Some(e) = e.downcast_ref::<GeyserError>() {
                         // in case of zmq error do not fill the log, just inc the err counter
                         match e {
                             GeyserError::ZmqSend => {
-                                inner.metrics.send_errs.log(1);
+                                inner.metrics.send_errs.fetch_add(1, Ordering::Relaxed);
                             }
                         }
 
                         Ok(())
                     } else {
+                        inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
+
                         Err(GeyserPluginError::Custom(e.into()))
                     }
                 }
@@ -82,12 +84,10 @@ impl GeyserPlugin for GeyserPluginHook {
     /// include a field "libpath" indicating the full path
     /// name of the shared library implementing this interface.
     fn on_load(&mut self, config_file: &str) -> Result<()> {
-        let cfg = Config::read(config_file).unwrap();
-
-        let metrics = Metrics::new_rc();
-
         solana_logger::setup_with_default("info");
 
+        let cfg = Config::read(config_file).unwrap();
+        let metrics = Metrics::new_rc();
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::PUSH).unwrap();
 
@@ -104,11 +104,15 @@ impl GeyserPlugin for GeyserPluginHook {
         self.0 = Some(Arc::new(Inner {
             socket: Mutex::new(socket),
             zmq_flag: if cfg.zmq_no_wait { zmq::DONTWAIT } else { 0 },
-            metrics,
+            metrics: metrics.clone(),
             filters: Arc::clone(&filters),
         }));
 
         thread::spawn(|| load_tx_filters(filters, cfg.filters_url));
+
+        thread::spawn(move || {
+            metrics.spin(Duration::from_secs(10));
+        });
 
         Ok(())
     }
@@ -217,7 +221,13 @@ impl GeyserPlugin for GeyserPluginHook {
                         };
 
                         if should_send {
-                            let data = flatbuffer::serialize_tx(tx, slot);
+                            let data = flatbuffer::serialize_transaction(&TransactionUpdate {
+                                signature: *tx.signature,
+                                is_vote: tx.is_vote,
+                                slot,
+                                transaction: tx.transaction.clone(),
+                                transaction_meta: tx.transaction_status_meta.clone(),
+                            });
                             inner
                                 .socket
                                 .lock()

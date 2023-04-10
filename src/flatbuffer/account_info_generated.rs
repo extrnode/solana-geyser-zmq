@@ -7,122 +7,13 @@ extern crate flatbuffers;
 #[allow(unused_imports, dead_code)]
 pub mod account_info {
 
+    use crate::flatbuffer::common_generated::Pubkey;
     use core::cmp::Ordering;
     use core::mem;
 
     extern crate flatbuffers;
     use self::flatbuffers::{EndianScalar, Follow};
 
-    pub enum PubkeyOffset {}
-    #[derive(Copy, Clone, PartialEq)]
-
-    pub struct Pubkey<'a> {
-        pub _tab: flatbuffers::Table<'a>,
-    }
-
-    impl<'a> flatbuffers::Follow<'a> for Pubkey<'a> {
-        type Inner = Pubkey<'a>;
-        #[inline]
-        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-            Self {
-                _tab: flatbuffers::Table::new(buf, loc),
-            }
-        }
-    }
-
-    impl<'a> Pubkey<'a> {
-        pub const VT_KEY: flatbuffers::VOffsetT = 4;
-
-        #[inline]
-        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-            Pubkey { _tab: table }
-        }
-        #[allow(unused_mut)]
-        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-            args: &'args PubkeyArgs<'args>,
-        ) -> flatbuffers::WIPOffset<Pubkey<'bldr>> {
-            let mut builder = PubkeyBuilder::new(_fbb);
-            if let Some(x) = args.key {
-                builder.add_key(x);
-            }
-            builder.finish()
-        }
-
-        #[inline]
-        pub fn key(&self) -> Option<flatbuffers::Vector<'a, u8>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(
-                        Pubkey::VT_KEY,
-                        None,
-                    )
-            }
-        }
-    }
-
-    impl flatbuffers::Verifiable for Pubkey<'_> {
-        #[inline]
-        fn run_verifier(
-            v: &mut flatbuffers::Verifier,
-            pos: usize,
-        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-            use self::flatbuffers::Verifiable;
-            v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
-                    "key",
-                    Self::VT_KEY,
-                    false,
-                )?
-                .finish();
-            Ok(())
-        }
-    }
-    pub struct PubkeyArgs<'a> {
-        pub key: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    }
-    impl<'a> Default for PubkeyArgs<'a> {
-        #[inline]
-        fn default() -> Self {
-            PubkeyArgs { key: None }
-        }
-    }
-
-    pub struct PubkeyBuilder<'a: 'b, 'b> {
-        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-    }
-    impl<'a: 'b, 'b> PubkeyBuilder<'a, 'b> {
-        #[inline]
-        pub fn add_key(&mut self, key: flatbuffers::WIPOffset<flatbuffers::Vector<'b, u8>>) {
-            self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<_>>(Pubkey::VT_KEY, key);
-        }
-        #[inline]
-        pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> PubkeyBuilder<'a, 'b> {
-            let start = _fbb.start_table();
-            PubkeyBuilder {
-                fbb_: _fbb,
-                start_: start,
-            }
-        }
-        #[inline]
-        pub fn finish(self) -> flatbuffers::WIPOffset<Pubkey<'a>> {
-            let o = self.fbb_.end_table(self.start_);
-            flatbuffers::WIPOffset::new(o.value())
-        }
-    }
-
-    impl core::fmt::Debug for Pubkey<'_> {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            let mut ds = f.debug_struct("Pubkey");
-            ds.field("key", &self.key());
-            ds.finish()
-        }
-    }
     pub enum AccountInfoOffset {}
     #[derive(Copy, Clone, PartialEq)]
 

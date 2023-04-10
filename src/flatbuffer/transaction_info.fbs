@@ -1,7 +1,9 @@
+include "common.fbs";
+
 namespace TransactionInfo;
 
 table TransactionInfo {
-  signature: Signature;
+  signature: Common.Signature;
   is_vote: bool;
   slot: uint64;
   transaction: SanitizedTransaction;
@@ -17,24 +19,17 @@ table SanitizedTransaction {
   message: SanitizedMessage;
   message_hash: [uint8];
   is_simple_vote_tx: bool;
-  signatures: [Signature];
+  signatures: [Common.Signature];
 }
 
 
 table LegacyMessage {
   header: MessageHeader;
-  account_keys: [Pubkey];
+  account_keys: [Common.Pubkey];
   recent_blockhash: [uint8];
   instructions: [CompiledInstruction];
 }
 
-table Signature {
-  key: [uint8];
-}
-
-table Pubkey {
-  key: [uint8];
-}
 
 table MessageHeader {
   num_required_signatures: uint8;
@@ -55,21 +50,21 @@ table LoadedMessageV0 {
 
 table MessageV0 {
   header: MessageHeader;
-  account_keys: [Pubkey];
+  account_keys: [Common.Pubkey];
   recent_blockhash: [uint8];
   instructions: [CompiledInstruction];
   address_table_lookups: [MessageAddressTableLookup];
 }
 
 table MessageAddressTableLookup {
-  account_key: Pubkey;
+  account_key: Common.Pubkey;
   writable_indexes: [uint8];
   readonly_indexes: [uint8];
 }
 
 table LoadedAddresses {
-  writable: [Pubkey];
-  readonly: [Pubkey];
+  writable: [Common.Pubkey];
+  readonly: [Common.Pubkey];
 }
 
 
