@@ -212,15 +212,23 @@ impl GeyserPlugin for GeyserPluginHook {
                     ReplicaTransactionInfoVersions::V0_0_1(tx) => {
                         let should_send: bool = {
                             let msg = tx.transaction.message();
-                            let filters = inner.filters.read().unwrap();
+                            let filters = inner.filters.read();
 
-                            msg.account_keys()
-                                .iter()
-                                .find(|&&x| filters.contains_key(&x))
-                                .is_some()
+                            match filters {
+                                Ok(filters) => msg
+                                    .account_keys()
+                                    .iter()
+                                    .find(|&&x| filters.contains_key(&x))
+                                    .is_some(),
+                                Err(e) => {
+                                    log::error!("Error reading account filters: {}", e);
+                                    // if there's an issue with filters mutex, just send tx, in order not to loose anything
+                                    true
+                                }
+                            }
                         };
 
-                        if should_send {
+                        if !tx.is_vote && should_send {
                             let data = flatbuffer::serialize_transaction(&TransactionUpdate {
                                 signature: *tx.signature,
                                 is_vote: tx.is_vote,

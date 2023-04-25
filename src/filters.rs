@@ -19,7 +19,7 @@ pub fn load_tx_filters(filters: Arc<RwLock<HashMap<Pubkey, bool>>>, url: String)
         let body = reqwest::blocking::get(u)?.text()?;
         let gf: GeyserFilters = serde_json::from_str(&body)?;
 
-        let mut filters_write = filters.write().expect("RwLock poisoned");
+        let mut filters_write = filters.write()?;
         filters_write.clear();
 
         for pid in gf.program_ids {
