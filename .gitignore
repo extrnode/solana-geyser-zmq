@@ -3,3 +3,4 @@
 test-ledger
 /.history
 /config.json
+/local.db

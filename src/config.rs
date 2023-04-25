@@ -5,7 +5,8 @@ pub struct Config {
     pub zmq_port: usize,
     pub zmq_no_wait: bool,
 
-    pub filters_url: String,
+    pub http_port: Option<usize>,
+    pub sqlite_filepath: String,
 }
 
 impl Config {

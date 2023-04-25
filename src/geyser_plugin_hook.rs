@@ -1,6 +1,8 @@
 use crate::{
+    api::Api,
     config::Config,
-    filters::load_tx_filters,
+    db::DB,
+    filters::GeyserFilters,
     flatbuffer::{self, AccountUpdate, TransactionUpdate},
     metrics::Metrics,
 };
@@ -8,10 +10,8 @@ use log::{error, info};
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use solana_program::pubkey::Pubkey;
 use std::{
-    collections::HashMap,
     fmt::{Debug, Formatter},
     sync::atomic::Ordering,
-    sync::RwLock,
     time::Duration,
 };
 use std::{
@@ -21,9 +21,15 @@ use std::{
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum GeyserError {
+pub enum GeyserError<'a> {
     #[error("zmq send error")]
     ZmqSend,
+
+    #[error("custom error: {0}")]
+    CustomError(&'a str),
+
+    #[error("sqlite error: {0}")]
+    SqliteError(sqlite::Error),
 }
 const UNINIT: &str = "ZMQ plugin not initialized yet!";
 
@@ -35,7 +41,7 @@ pub struct Inner {
     socket: Mutex<zmq::Socket>,
     zmq_flag: i32,
     metrics: Arc<Metrics>,
-    filters: Arc<RwLock<HashMap<Pubkey, bool>>>,
+    filters: Arc<GeyserFilters>,
 }
 
 impl GeyserPluginHook {
@@ -55,6 +61,8 @@ impl GeyserPluginHook {
                             GeyserError::ZmqSend => {
                                 inner.metrics.send_errs.fetch_add(1, Ordering::Relaxed);
                             }
+                            GeyserError::CustomError(_) => todo!(),
+                            GeyserError::SqliteError(_) => todo!(),
                         }
 
                         Ok(())
@@ -88,6 +96,8 @@ impl GeyserPlugin for GeyserPluginHook {
 
         let cfg = Config::read(config_file).unwrap();
         let metrics = Metrics::new_rc();
+        let db = DB::new(cfg.sqlite_filepath);
+
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::PUSH).unwrap();
 
@@ -99,7 +109,11 @@ impl GeyserPlugin for GeyserPluginHook {
 
         info!("[on_load] - socket created");
 
-        let filters = Arc::new(RwLock::new(HashMap::new()));
+        let filters = Arc::new(GeyserFilters::new());
+        let existing_filters = db.get_filters();
+        if existing_filters.is_ok() {
+            filters.update_filters(existing_filters.unwrap()).unwrap();
+        }
 
         self.0 = Some(Arc::new(Inner {
             socket: Mutex::new(socket),
@@ -108,7 +122,10 @@ impl GeyserPlugin for GeyserPluginHook {
             filters: Arc::clone(&filters),
         }));
 
-        thread::spawn(|| load_tx_filters(filters, cfg.filters_url));
+        if let Some(http_port) = cfg.http_port {
+            let api = Api::new(http_port, filters);
+            thread::spawn(move || api.start(db));
+        }
 
         thread::spawn(move || {
             metrics.spin(Duration::from_secs(10));
@@ -210,25 +227,7 @@ impl GeyserPlugin for GeyserPluginHook {
             |inner| {
                 match transaction {
                     ReplicaTransactionInfoVersions::V0_0_1(tx) => {
-                        let should_send: bool = {
-                            let msg = tx.transaction.message();
-                            let filters = inner.filters.read();
-
-                            match filters {
-                                Ok(filters) => msg
-                                    .account_keys()
-                                    .iter()
-                                    .find(|&&x| filters.contains_key(&x))
-                                    .is_some(),
-                                Err(e) => {
-                                    log::error!("Error reading account filters: {}", e);
-                                    // if there's an issue with filters mutex, just send tx, in order not to loose anything
-                                    true
-                                }
-                            }
-                        };
-
-                        if !tx.is_vote && should_send {
+                        if !tx.is_vote && inner.filters.should_send(tx.transaction.message()) {
                             let data = flatbuffer::serialize_transaction(&TransactionUpdate {
                                 signature: *tx.signature,
                                 is_vote: tx.is_vote,

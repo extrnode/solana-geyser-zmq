@@ -1,4 +1,6 @@
+mod api;
 mod config;
+mod db;
 mod entrypoint;
 mod filters;
 mod flatbuffer;
