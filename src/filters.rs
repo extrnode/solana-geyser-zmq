@@ -1,17 +1,30 @@
 use solana_program::{message::SanitizedMessage, pubkey::Pubkey};
-use std::{collections::HashMap, sync::RwLock, vec};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+    vec,
+};
 
-use crate::geyser_plugin_hook::GeyserError;
+use crate::{db::DB, errors::GeyserError};
 
 pub struct GeyserFilters {
     filters: RwLock<HashMap<Pubkey, bool>>,
+    skip_votes: bool,
 }
 
 impl GeyserFilters {
-    pub fn new() -> Self {
-        Self {
+    pub fn new_arc(db: &DB, skip_votes: bool) -> Arc<Self> {
+        let filters = Arc::new(Self {
             filters: RwLock::new(HashMap::new()),
+            skip_votes,
+        });
+
+        let existing_filters = db.get_filters();
+        if existing_filters.is_ok() {
+            filters.update_filters(existing_filters.unwrap()).unwrap();
         }
+
+        filters
     }
 
     pub fn update_filters(&self, program_ids: Vec<Pubkey>) -> Result<(), GeyserError> {
@@ -38,7 +51,11 @@ impl GeyserFilters {
         }
     }
 
-    pub fn should_send(&self, msg: &SanitizedMessage) -> bool {
+    pub fn should_send(&self, msg: &SanitizedMessage, is_vote: bool) -> bool {
+        if is_vote {
+            return !self.skip_votes;
+        }
+
         match self.filters.read() {
             Ok(filters) => msg
                 .account_keys()

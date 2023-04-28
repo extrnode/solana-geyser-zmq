@@ -1,21 +1,24 @@
-use std::{fmt::Debug, str::FromStr, sync::Arc};
+use std::{error::Error, fmt::Debug, str::FromStr, sync::Arc};
 
 use log::error;
 use solana_program::pubkey::Pubkey;
 use tiny_http::{Request, Response, Server};
 
-use crate::{db::DB, filters::GeyserFilters, geyser_plugin_hook::GeyserError};
+use crate::{db::DB, errors::GeyserError, filters::GeyserFilters};
 pub struct Api {
     server: Server,
     filters: Arc<GeyserFilters>,
 }
 
 impl Api {
-    pub fn new(port: usize, filters: Arc<GeyserFilters>) -> Self {
-        Self {
-            server: Server::http(format!("0.0.0.0:{}", port)).unwrap(),
+    pub fn new(
+        port: usize,
+        filters: Arc<GeyserFilters>,
+    ) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
+        Ok(Self {
+            server: Server::http(format!("0.0.0.0:{}", port))?,
             filters,
-        }
+        })
     }
 
     pub fn response_string<T: Debug>(&self, request: Request, data: T) {

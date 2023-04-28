@@ -2,11 +2,12 @@ use crate::{
     api::Api,
     config::Config,
     db::DB,
+    errors::GeyserError,
     filters::GeyserFilters,
     flatbuffer::{self, AccountUpdate, TransactionUpdate},
     metrics::Metrics,
 };
-use log::{error, info};
+use log::info;
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use solana_program::pubkey::Pubkey;
 use std::{
@@ -18,20 +19,8 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum GeyserError<'a> {
-    #[error("zmq send error")]
-    ZmqSend,
-
-    #[error("custom error: {0}")]
-    CustomError(&'a str),
-
-    #[error("sqlite error: {0}")]
-    SqliteError(sqlite::Error),
-}
-const UNINIT: &str = "ZMQ plugin not initialized yet!";
+const UNINIT: &str = "Geyser plugin not initialized yet!";
 
 /// This is the main object returned bu our dynamic library in entrypoint.rs
 #[derive(Default)]
@@ -61,8 +50,9 @@ impl GeyserPluginHook {
                             GeyserError::ZmqSend => {
                                 inner.metrics.send_errs.fetch_add(1, Ordering::Relaxed);
                             }
-                            GeyserError::CustomError(_) => todo!(),
-                            GeyserError::SqliteError(_) => todo!(),
+                            _ => {
+                                inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
+                            }
                         }
 
                         Ok(())
@@ -94,9 +84,10 @@ impl GeyserPlugin for GeyserPluginHook {
     fn on_load(&mut self, config_file: &str) -> Result<()> {
         solana_logger::setup_with_default("info");
 
-        let cfg = Config::read(config_file).unwrap();
         let metrics = Metrics::new_rc();
-        let db = DB::new(cfg.sqlite_filepath);
+
+        let cfg = Config::read(config_file).unwrap();
+        let db = DB::new(cfg.sqlite_filepath).unwrap();
 
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::PUSH).unwrap();
@@ -109,11 +100,7 @@ impl GeyserPlugin for GeyserPluginHook {
 
         info!("[on_load] - socket created");
 
-        let filters = Arc::new(GeyserFilters::new());
-        let existing_filters = db.get_filters();
-        if existing_filters.is_ok() {
-            filters.update_filters(existing_filters.unwrap()).unwrap();
-        }
+        let filters = GeyserFilters::new_arc(&db, cfg.skip_vote_txs);
 
         self.0 = Some(Arc::new(Inner {
             socket: Mutex::new(socket),
@@ -123,7 +110,7 @@ impl GeyserPlugin for GeyserPluginHook {
         }));
 
         if let Some(http_port) = cfg.http_port {
-            let api = Api::new(http_port, filters);
+            let api = Api::new(http_port, filters).unwrap();
             thread::spawn(move || api.start(db));
         }
 
@@ -227,7 +214,10 @@ impl GeyserPlugin for GeyserPluginHook {
             |inner| {
                 match transaction {
                     ReplicaTransactionInfoVersions::V0_0_1(tx) => {
-                        if !tx.is_vote && inner.filters.should_send(tx.transaction.message()) {
+                        if inner
+                            .filters
+                            .should_send(tx.transaction.message(), tx.is_vote)
+                        {
                             let data = flatbuffer::serialize_transaction(&TransactionUpdate {
                                 signature: *tx.signature,
                                 is_vote: tx.is_vote,

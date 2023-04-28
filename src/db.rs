@@ -1,7 +1,6 @@
+use crate::errors::GeyserError;
 use solana_program::pubkey::Pubkey;
 use sqlite::Connection;
-
-use crate::geyser_plugin_hook::GeyserError;
 
 const DB_KEY_FILTERS: &str = "filters";
 
@@ -10,8 +9,8 @@ pub struct DB {
 }
 
 impl DB {
-    pub fn new(path: String) -> Self {
-        let connection = sqlite::open(path).unwrap();
+    pub fn new(path: String) -> Result<Self, GeyserError<'static>> {
+        let connection = sqlite::open(path).map_err(GeyserError::SqliteError)?;
 
         let query = "
          CREATE TABLE IF NOT EXISTS settings(
@@ -20,9 +19,11 @@ impl DB {
             PRIMARY KEY(key)
          );";
 
-        connection.execute(query).unwrap();
+        connection
+            .execute(query)
+            .map_err(GeyserError::SqliteError)?;
 
-        Self { conn: connection }
+        Ok(Self { conn: connection })
     }
 
     pub fn set_filters(&self, v: Vec<Pubkey>) -> Result<(), GeyserError> {

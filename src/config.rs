@@ -7,6 +7,8 @@ pub struct Config {
 
     pub http_port: Option<usize>,
     pub sqlite_filepath: String,
+
+    pub skip_vote_txs: bool,
 }
 
 impl Config {
