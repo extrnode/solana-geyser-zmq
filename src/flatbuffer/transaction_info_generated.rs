@@ -3,17 +3,12 @@
 
 // @generated
 
-use crate::common_generated::*;
-use core::mem;
-use core::cmp::Ordering;
-
 extern crate flatbuffers;
-use self::flatbuffers::{EndianScalar, Follow};
 
 #[allow(unused_imports, dead_code)]
 pub mod transaction_info {
 
-  use crate::common_generated::*;
+  use crate::flatbuffer::common_generated::*;
   use core::mem;
   use core::cmp::Ordering;
 
@@ -319,15 +314,14 @@ impl flatbuffers::SimpleToVerifyInSlice for TransactionErrorType {}
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_INSTRUCTION_ERROR_TYPE: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MAX_INSTRUCTION_ERROR_TYPE: u8 = 52;
+pub const ENUM_MAX_INSTRUCTION_ERROR_TYPE: u8 = 51;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_INSTRUCTION_ERROR_TYPE: [InstructionErrorType; 53] = [
+pub const ENUM_VALUES_INSTRUCTION_ERROR_TYPE: [InstructionErrorType; 52] = [
   InstructionErrorType::GenericError,
   InstructionErrorType::InvalidArgument,
   InstructionErrorType::InvalidInstructionData,
-  InstructionErrorType::InvalidAcco,
-  InstructionErrorType::untData,
+  InstructionErrorType::InvalidAccountData,
   InstructionErrorType::AccountDataTooSmall,
   InstructionErrorType::InsufficientFunds,
   InstructionErrorType::IncorrectProgramId,
@@ -386,65 +380,63 @@ impl InstructionErrorType {
   pub const GenericError: Self = Self(0);
   pub const InvalidArgument: Self = Self(1);
   pub const InvalidInstructionData: Self = Self(2);
-  pub const InvalidAcco: Self = Self(3);
-  pub const untData: Self = Self(4);
-  pub const AccountDataTooSmall: Self = Self(5);
-  pub const InsufficientFunds: Self = Self(6);
-  pub const IncorrectProgramId: Self = Self(7);
-  pub const MissingRequiredSignature: Self = Self(8);
-  pub const AccountAlreadyInitialized: Self = Self(9);
-  pub const UninitializedAccount: Self = Self(10);
-  pub const UnbalancedInstruction: Self = Self(11);
-  pub const ModifiedProgramId: Self = Self(12);
-  pub const ExternalAccountLamportSpend: Self = Self(13);
-  pub const ExternalAccountDataModified: Self = Self(14);
-  pub const ReadonlyLamportChange: Self = Self(15);
-  pub const ReadonlyDataModified: Self = Self(16);
-  pub const DuplicateAccountIndex: Self = Self(17);
-  pub const ExecutableModified: Self = Self(18);
-  pub const RentEpochModified: Self = Self(19);
-  pub const NotEnoughAccountKeys: Self = Self(20);
-  pub const AccountDataSizeChanged: Self = Self(21);
-  pub const AccountNotExecutable: Self = Self(22);
-  pub const AccountBorrowFailed: Self = Self(23);
-  pub const AccountBorrowOutstanding: Self = Self(24);
-  pub const DuplicateAccountOutOfSync: Self = Self(25);
-  pub const Custom: Self = Self(26);
-  pub const InvalidError: Self = Self(27);
-  pub const ExecutableDataModified: Self = Self(28);
-  pub const ExecutableLamportChange: Self = Self(29);
-  pub const ExecutableAccountNotRentExempt: Self = Self(30);
-  pub const UnsupportedProgramId: Self = Self(31);
-  pub const CallDepth: Self = Self(32);
-  pub const MissingAccount: Self = Self(33);
-  pub const ReentrancyNotAllowed: Self = Self(34);
-  pub const MaxSeedLengthExceeded: Self = Self(35);
-  pub const InvalidSeeds: Self = Self(36);
-  pub const InvalidRealloc: Self = Self(37);
-  pub const ComputationalBudgetExceeded: Self = Self(38);
-  pub const PrivilegeEscalation: Self = Self(39);
-  pub const ProgramEnvironmentSetupFailure: Self = Self(40);
-  pub const ProgramFailedToComplete: Self = Self(41);
-  pub const ProgramFailedToCompile: Self = Self(42);
-  pub const Immutable: Self = Self(43);
-  pub const IncorrectAuthority: Self = Self(44);
-  pub const BorshIoError: Self = Self(45);
-  pub const AccountNotRentExempt: Self = Self(46);
-  pub const InvalidAccountOwner: Self = Self(47);
-  pub const ArithmeticOverflow: Self = Self(48);
-  pub const UnsupportedSysvar: Self = Self(49);
-  pub const IllegalOwner: Self = Self(50);
-  pub const MaxAccountsDataSizeExceeded: Self = Self(51);
-  pub const ActiveVoteAccountClose: Self = Self(52);
+  pub const InvalidAccountData: Self = Self(3);
+  pub const AccountDataTooSmall: Self = Self(4);
+  pub const InsufficientFunds: Self = Self(5);
+  pub const IncorrectProgramId: Self = Self(6);
+  pub const MissingRequiredSignature: Self = Self(7);
+  pub const AccountAlreadyInitialized: Self = Self(8);
+  pub const UninitializedAccount: Self = Self(9);
+  pub const UnbalancedInstruction: Self = Self(10);
+  pub const ModifiedProgramId: Self = Self(11);
+  pub const ExternalAccountLamportSpend: Self = Self(12);
+  pub const ExternalAccountDataModified: Self = Self(13);
+  pub const ReadonlyLamportChange: Self = Self(14);
+  pub const ReadonlyDataModified: Self = Self(15);
+  pub const DuplicateAccountIndex: Self = Self(16);
+  pub const ExecutableModified: Self = Self(17);
+  pub const RentEpochModified: Self = Self(18);
+  pub const NotEnoughAccountKeys: Self = Self(19);
+  pub const AccountDataSizeChanged: Self = Self(20);
+  pub const AccountNotExecutable: Self = Self(21);
+  pub const AccountBorrowFailed: Self = Self(22);
+  pub const AccountBorrowOutstanding: Self = Self(23);
+  pub const DuplicateAccountOutOfSync: Self = Self(24);
+  pub const Custom: Self = Self(25);
+  pub const InvalidError: Self = Self(26);
+  pub const ExecutableDataModified: Self = Self(27);
+  pub const ExecutableLamportChange: Self = Self(28);
+  pub const ExecutableAccountNotRentExempt: Self = Self(29);
+  pub const UnsupportedProgramId: Self = Self(30);
+  pub const CallDepth: Self = Self(31);
+  pub const MissingAccount: Self = Self(32);
+  pub const ReentrancyNotAllowed: Self = Self(33);
+  pub const MaxSeedLengthExceeded: Self = Self(34);
+  pub const InvalidSeeds: Self = Self(35);
+  pub const InvalidRealloc: Self = Self(36);
+  pub const ComputationalBudgetExceeded: Self = Self(37);
+  pub const PrivilegeEscalation: Self = Self(38);
+  pub const ProgramEnvironmentSetupFailure: Self = Self(39);
+  pub const ProgramFailedToComplete: Self = Self(40);
+  pub const ProgramFailedToCompile: Self = Self(41);
+  pub const Immutable: Self = Self(42);
+  pub const IncorrectAuthority: Self = Self(43);
+  pub const BorshIoError: Self = Self(44);
+  pub const AccountNotRentExempt: Self = Self(45);
+  pub const InvalidAccountOwner: Self = Self(46);
+  pub const ArithmeticOverflow: Self = Self(47);
+  pub const UnsupportedSysvar: Self = Self(48);
+  pub const IllegalOwner: Self = Self(49);
+  pub const MaxAccountsDataSizeExceeded: Self = Self(50);
+  pub const ActiveVoteAccountClose: Self = Self(51);
 
   pub const ENUM_MIN: u8 = 0;
-  pub const ENUM_MAX: u8 = 52;
+  pub const ENUM_MAX: u8 = 51;
   pub const ENUM_VALUES: &'static [Self] = &[
     Self::GenericError,
     Self::InvalidArgument,
     Self::InvalidInstructionData,
-    Self::InvalidAcco,
-    Self::untData,
+    Self::InvalidAccountData,
     Self::AccountDataTooSmall,
     Self::InsufficientFunds,
     Self::IncorrectProgramId,
@@ -500,8 +492,7 @@ impl InstructionErrorType {
       Self::GenericError => Some("GenericError"),
       Self::InvalidArgument => Some("InvalidArgument"),
       Self::InvalidInstructionData => Some("InvalidInstructionData"),
-      Self::InvalidAcco => Some("InvalidAcco"),
-      Self::untData => Some("untData"),
+      Self::InvalidAccountData => Some("InvalidAccountData"),
       Self::AccountDataTooSmall => Some("AccountDataTooSmall"),
       Self::InsufficientFunds => Some("InsufficientFunds"),
       Self::IncorrectProgramId => Some("IncorrectProgramId"),
@@ -926,11 +917,11 @@ impl<'a> TransactionInfo<'a> {
 
 
   #[inline]
-  pub fn signature(&self) -> Option<super::common::Signature<'a>> {
+  pub fn signature(&self) -> Option<crate::flatbuffer::common_generated::Signature<'a>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<super::common::Signature>>(TransactionInfo::VT_SIGNATURE, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature>>(TransactionInfo::VT_SIGNATURE, None)}
   }
   #[inline]
   pub fn is_vote(&self) -> bool {
@@ -969,7 +960,7 @@ impl flatbuffers::Verifiable for TransactionInfo<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<super::common::Signature>>("signature", Self::VT_SIGNATURE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature>>("signature", Self::VT_SIGNATURE, false)?
      .visit_field::<bool>("is_vote", Self::VT_IS_VOTE, false)?
      .visit_field::<u64>("slot", Self::VT_SLOT, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<SanitizedTransaction>>("transaction", Self::VT_TRANSACTION, false)?
@@ -979,7 +970,7 @@ impl flatbuffers::Verifiable for TransactionInfo<'_> {
   }
 }
 pub struct TransactionInfoArgs<'a> {
-    pub signature: Option<flatbuffers::WIPOffset<super::common::Signature<'a>>>,
+    pub signature: Option<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Signature<'a>>>,
     pub is_vote: bool,
     pub slot: u64,
     pub transaction: Option<flatbuffers::WIPOffset<SanitizedTransaction<'a>>>,
@@ -1004,8 +995,8 @@ pub struct TransactionInfoBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> TransactionInfoBuilder<'a, 'b> {
   #[inline]
-  pub fn add_signature(&mut self, signature: flatbuffers::WIPOffset<super::common::Signature<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<super::common::Signature>>(TransactionInfo::VT_SIGNATURE, signature);
+  pub fn add_signature(&mut self, signature: flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Signature<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Signature>>(TransactionInfo::VT_SIGNATURE, signature);
   }
   #[inline]
   pub fn add_is_vote(&mut self, is_vote: bool) {
@@ -1119,11 +1110,11 @@ impl<'a> SanitizedTransaction<'a> {
     unsafe { self._tab.get::<bool>(SanitizedTransaction::VT_IS_SIMPLE_VOTE_TX, Some(false)).unwrap()}
   }
   #[inline]
-  pub fn signatures(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Signature<'a>>>> {
+  pub fn signatures(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Signature>>>>(SanitizedTransaction::VT_SIGNATURES, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature>>>>(SanitizedTransaction::VT_SIGNATURES, None)}
   }
   #[inline]
   #[allow(non_snake_case)]
@@ -1173,7 +1164,7 @@ impl flatbuffers::Verifiable for SanitizedTransaction<'_> {
      })?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("message_hash", Self::VT_MESSAGE_HASH, false)?
      .visit_field::<bool>("is_simple_vote_tx", Self::VT_IS_SIMPLE_VOTE_TX, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<super::common::Signature>>>>("signatures", Self::VT_SIGNATURES, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature>>>>("signatures", Self::VT_SIGNATURES, false)?
      .finish();
     Ok(())
   }
@@ -1183,7 +1174,7 @@ pub struct SanitizedTransactionArgs<'a> {
     pub message: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
     pub message_hash: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
     pub is_simple_vote_tx: bool,
-    pub signatures: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Signature<'a>>>>>,
+    pub signatures: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature<'a>>>>>,
 }
 impl<'a> Default for SanitizedTransactionArgs<'a> {
   #[inline]
@@ -1220,7 +1211,7 @@ impl<'a: 'b, 'b> SanitizedTransactionBuilder<'a, 'b> {
     self.fbb_.push_slot::<bool>(SanitizedTransaction::VT_IS_SIMPLE_VOTE_TX, is_simple_vote_tx, false);
   }
   #[inline]
-  pub fn add_signatures(&mut self, signatures: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<super::common::Signature<'b >>>>) {
+  pub fn add_signatures(&mut self, signatures: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(SanitizedTransaction::VT_SIGNATURES, signatures);
   }
   #[inline]
@@ -1315,11 +1306,11 @@ impl<'a> LegacyMessage<'a> {
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<MessageHeader>>(LegacyMessage::VT_HEADER, None)}
   }
   #[inline]
-  pub fn account_keys(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey<'a>>>> {
+  pub fn account_keys(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey>>>>(LegacyMessage::VT_ACCOUNT_KEYS, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>>>(LegacyMessage::VT_ACCOUNT_KEYS, None)}
   }
   #[inline]
   pub fn recent_blockhash(&self) -> Option<flatbuffers::Vector<'a, u8>> {
@@ -1345,7 +1336,7 @@ impl flatbuffers::Verifiable for LegacyMessage<'_> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<MessageHeader>>("header", Self::VT_HEADER, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<super::common::Pubkey>>>>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>>>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("recent_blockhash", Self::VT_RECENT_BLOCKHASH, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<CompiledInstruction>>>>("instructions", Self::VT_INSTRUCTIONS, false)?
      .finish();
@@ -1354,7 +1345,7 @@ impl flatbuffers::Verifiable for LegacyMessage<'_> {
 }
 pub struct LegacyMessageArgs<'a> {
     pub header: Option<flatbuffers::WIPOffset<MessageHeader<'a>>>,
-    pub account_keys: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey<'a>>>>>,
+    pub account_keys: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>>>,
     pub recent_blockhash: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
     pub instructions: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CompiledInstruction<'a>>>>>,
 }
@@ -1380,7 +1371,7 @@ impl<'a: 'b, 'b> LegacyMessageBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<MessageHeader>>(LegacyMessage::VT_HEADER, header);
   }
   #[inline]
-  pub fn add_account_keys(&mut self, account_keys: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<super::common::Pubkey<'b >>>>) {
+  pub fn add_account_keys(&mut self, account_keys: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(LegacyMessage::VT_ACCOUNT_KEYS, account_keys);
   }
   #[inline]
@@ -1841,11 +1832,11 @@ impl<'a> MessageV0<'a> {
     unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<MessageHeader>>(MessageV0::VT_HEADER, None)}
   }
   #[inline]
-  pub fn account_keys(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey<'a>>>> {
+  pub fn account_keys(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey>>>>(MessageV0::VT_ACCOUNT_KEYS, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>>>(MessageV0::VT_ACCOUNT_KEYS, None)}
   }
   #[inline]
   pub fn recent_blockhash(&self) -> Option<flatbuffers::Vector<'a, u8>> {
@@ -1878,7 +1869,7 @@ impl flatbuffers::Verifiable for MessageV0<'_> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
      .visit_field::<flatbuffers::ForwardsUOffset<MessageHeader>>("header", Self::VT_HEADER, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<super::common::Pubkey>>>>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>>>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("recent_blockhash", Self::VT_RECENT_BLOCKHASH, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<CompiledInstruction>>>>("instructions", Self::VT_INSTRUCTIONS, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<MessageAddressTableLookup>>>>("address_table_lookups", Self::VT_ADDRESS_TABLE_LOOKUPS, false)?
@@ -1888,7 +1879,7 @@ impl flatbuffers::Verifiable for MessageV0<'_> {
 }
 pub struct MessageV0Args<'a> {
     pub header: Option<flatbuffers::WIPOffset<MessageHeader<'a>>>,
-    pub account_keys: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey<'a>>>>>,
+    pub account_keys: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>>>,
     pub recent_blockhash: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
     pub instructions: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CompiledInstruction<'a>>>>>,
     pub address_table_lookups: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<MessageAddressTableLookup<'a>>>>>,
@@ -1916,7 +1907,7 @@ impl<'a: 'b, 'b> MessageV0Builder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<MessageHeader>>(MessageV0::VT_HEADER, header);
   }
   #[inline]
-  pub fn add_account_keys(&mut self, account_keys: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<super::common::Pubkey<'b >>>>) {
+  pub fn add_account_keys(&mut self, account_keys: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(MessageV0::VT_ACCOUNT_KEYS, account_keys);
   }
   #[inline]
@@ -1995,11 +1986,11 @@ impl<'a> MessageAddressTableLookup<'a> {
 
 
   #[inline]
-  pub fn account_key(&self) -> Option<super::common::Pubkey<'a>> {
+  pub fn account_key(&self) -> Option<crate::flatbuffer::common_generated::Pubkey<'a>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<super::common::Pubkey>>(MessageAddressTableLookup::VT_ACCOUNT_KEY, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>(MessageAddressTableLookup::VT_ACCOUNT_KEY, None)}
   }
   #[inline]
   pub fn writable_indexes(&self) -> Option<flatbuffers::Vector<'a, u8>> {
@@ -2024,7 +2015,7 @@ impl flatbuffers::Verifiable for MessageAddressTableLookup<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<super::common::Pubkey>>("account_key", Self::VT_ACCOUNT_KEY, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>("account_key", Self::VT_ACCOUNT_KEY, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("writable_indexes", Self::VT_WRITABLE_INDEXES, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("readonly_indexes", Self::VT_READONLY_INDEXES, false)?
      .finish();
@@ -2032,7 +2023,7 @@ impl flatbuffers::Verifiable for MessageAddressTableLookup<'_> {
   }
 }
 pub struct MessageAddressTableLookupArgs<'a> {
-    pub account_key: Option<flatbuffers::WIPOffset<super::common::Pubkey<'a>>>,
+    pub account_key: Option<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>,
     pub writable_indexes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
     pub readonly_indexes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
 }
@@ -2053,8 +2044,8 @@ pub struct MessageAddressTableLookupBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> MessageAddressTableLookupBuilder<'a, 'b> {
   #[inline]
-  pub fn add_account_key(&mut self, account_key: flatbuffers::WIPOffset<super::common::Pubkey<'b >>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<super::common::Pubkey>>(MessageAddressTableLookup::VT_ACCOUNT_KEY, account_key);
+  pub fn add_account_key(&mut self, account_key: flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Pubkey<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Pubkey>>(MessageAddressTableLookup::VT_ACCOUNT_KEY, account_key);
   }
   #[inline]
   pub fn add_writable_indexes(&mut self, writable_indexes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
@@ -2124,18 +2115,18 @@ impl<'a> LoadedAddresses<'a> {
 
 
   #[inline]
-  pub fn writable(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey<'a>>>> {
+  pub fn writable(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey>>>>(LoadedAddresses::VT_WRITABLE, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>>>(LoadedAddresses::VT_WRITABLE, None)}
   }
   #[inline]
-  pub fn readonly(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey<'a>>>> {
+  pub fn readonly(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey>>>>(LoadedAddresses::VT_READONLY, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>>>(LoadedAddresses::VT_READONLY, None)}
   }
 }
 
@@ -2146,15 +2137,15 @@ impl flatbuffers::Verifiable for LoadedAddresses<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<super::common::Pubkey>>>>("writable", Self::VT_WRITABLE, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<super::common::Pubkey>>>>("readonly", Self::VT_READONLY, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>>>("writable", Self::VT_WRITABLE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>>>("readonly", Self::VT_READONLY, false)?
      .finish();
     Ok(())
   }
 }
 pub struct LoadedAddressesArgs<'a> {
-    pub writable: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey<'a>>>>>,
-    pub readonly: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<super::common::Pubkey<'a>>>>>,
+    pub writable: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>>>,
+    pub readonly: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>>>,
 }
 impl<'a> Default for LoadedAddressesArgs<'a> {
   #[inline]
@@ -2172,11 +2163,11 @@ pub struct LoadedAddressesBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> LoadedAddressesBuilder<'a, 'b> {
   #[inline]
-  pub fn add_writable(&mut self, writable: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<super::common::Pubkey<'b >>>>) {
+  pub fn add_writable(&mut self, writable: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(LoadedAddresses::VT_WRITABLE, writable);
   }
   #[inline]
-  pub fn add_readonly(&mut self, readonly: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<super::common::Pubkey<'b >>>>) {
+  pub fn add_readonly(&mut self, readonly: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey<'b >>>>) {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(LoadedAddresses::VT_READONLY, readonly);
   }
   #[inline]
