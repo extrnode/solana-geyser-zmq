@@ -1,0 +1,74 @@
+# Source:
+# https://github.com/solana-labs/solana-accountsdb-plugin-postgres/blob/master/.github/workflows/test.yml
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set env vars
+        run: |
+          source ci/rust-version.sh
+          echo "RUST_STABLE=$rust_stable" | tee -a $GITHUB_ENV
+          
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gnupg \
+            libudev-dev \
+            libsasl2-dev \
+            libssl-dev \
+            libzstd-dev
+          sudo touch /etc/apt/sources.list.d/debian.list
+          echo 'deb http://ftp.debian.org/debian sid main' | sudo tee -a /etc/apt/sources.list.d/debian.list
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_STABLE }}
+          override: true
+          profile: minimal
+          components: rustfmt, clippy
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-build-${{ hashFiles('**/Cargo.lock', 'rust-toolchain') }}-${{ env.RUST_STABLE }}
+
+      - name: cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+#      - name: cargo clippy
+#        uses: actions-rs/cargo@v1
+#        with:
+#          command: clippy
+#          args: --workspace --all-targets -- --deny=warnings
+
+      - name: Build
+        run: ./ci/cargo-build-test.sh
+
+
+      - name: Install solana
+        run: |
+          curl -sSf https://raw.githubusercontent.com/solana-labs/solana/v1.13.5/install/solana-install-init.sh | sh -s - 1.13.7
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+
+      - name: Test geyser plugin
+        run: ./ci/test-geyser-plugin.sh
