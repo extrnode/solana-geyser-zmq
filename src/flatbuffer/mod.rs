@@ -1,4 +1,16 @@
 //! FlatBuffer serialization module
+use crate::flatbuffer::transaction_info_generated::transaction_info::{
+    CompiledInstruction, CompiledInstructionArgs, InnerByte, InnerByteArgs, InnerInstructions,
+    InnerInstructionsArgs, InstructionError, InstructionErrorArgs, InstructionErrorData,
+    InstructionErrorDataArgs, InstructionErrorInnerData, InstructionErrorType, LegacyMessage,
+    LegacyMessageArgs, LoadedAddresses, LoadedAddressesArgs, LoadedMessageV0, LoadedMessageV0Args,
+    MessageAddressTableLookup, MessageAddressTableLookupArgs, MessageHeader, MessageHeaderArgs,
+    MessageV0, MessageV0Args, Reward, RewardArgs, RewardType, SanitizedMessage,
+    SanitizedTransaction, SanitizedTransactionArgs, StringValue, StringValueArgs, TransactionError,
+    TransactionErrorArgs, TransactionErrorData, TransactionErrorType, TransactionInfo,
+    TransactionInfoArgs, TransactionStatusMeta, TransactionStatusMetaArgs, TransactionTokenBalance,
+    TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs, Uint32Value, Uint32ValueArgs,
+};
 use account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
 use common_generated::{
     Pubkey as FlatBufferPubkey, PubkeyArgs as FlatBufferPubkeyArgs,
@@ -9,16 +21,6 @@ use solana_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
 pub use solana_program::hash::Hash;
 use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
-
-use crate::flatbuffer::transaction_info_generated::transaction_info::{
-    CompiledInstruction, CompiledInstructionArgs, InnerInstructions, InnerInstructionsArgs,
-    LegacyMessage, LegacyMessageArgs, LoadedAddresses, LoadedAddressesArgs, LoadedMessageV0,
-    LoadedMessageV0Args, MessageAddressTableLookup, MessageAddressTableLookupArgs, MessageHeader,
-    MessageHeaderArgs, MessageV0, MessageV0Args, Reward, RewardArgs, RewardType, SanitizedMessage,
-    SanitizedTransaction, SanitizedTransactionArgs, TransactionInfo, TransactionInfoArgs,
-    TransactionStatusMeta, TransactionStatusMetaArgs, TransactionTokenBalance,
-    TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs,
-};
 
 use self::slot_generated::slot::{Slot, SlotArgs, Status};
 
@@ -542,10 +544,852 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
         None
     };
 
+    let status =
+        if transaction.transaction_meta.status.is_ok() {
+            None
+        } else {
+            match transaction.transaction_meta.status.clone().err().unwrap() {
+                solana_sdk::transaction::TransactionError::AccountInUse => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::AccountInUse,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::AccountLoadedTwice => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::AccountLoadedTwice,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::AccountNotFound => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::AccountNotFound,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::ProgramAccountNotFound => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::ProgramAccountNotFound,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InsufficientFundsForFee => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InsufficientFundsForFee,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InvalidAccountForFee => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InvalidAccountForFee,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::AlreadyProcessed => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::AlreadyProcessed,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::BlockhashNotFound => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::BlockhashNotFound,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InstructionError(index, error) => {
+                    let inner_instruction = match error {
+                        solana_sdk::instruction::InstructionError::GenericError =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::GenericError,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                }
+                            )),
+                        solana_sdk::instruction::InstructionError::InvalidArgument =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::InvalidArgument,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::InvalidInstructionData =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::InvalidInstructionData,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::InvalidAccountData =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::InvalidAccountData,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::AccountDataTooSmall =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::AccountDataTooSmall,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::InsufficientFunds =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::InsufficientFunds,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::IncorrectProgramId =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::IncorrectProgramId,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::MissingRequiredSignature =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::MissingRequiredSignature,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::AccountAlreadyInitialized =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::AccountAlreadyInitialized,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::UninitializedAccount =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::UninitializedAccount,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::UnbalancedInstruction =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::UnbalancedInstruction,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ModifiedProgramId =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ModifiedProgramId,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ExternalAccountLamportSpend =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ExternalAccountLamportSpend,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ExternalAccountDataModified =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ExternalAccountDataModified,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ReadonlyLamportChange =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ReadonlyLamportChange,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ReadonlyDataModified =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ReadonlyDataModified,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::DuplicateAccountIndex =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::DuplicateAccountIndex,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ExecutableModified =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ExecutableModified,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::RentEpochModified =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::RentEpochModified,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::NotEnoughAccountKeys =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::NotEnoughAccountKeys,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::AccountDataSizeChanged =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::AccountDataSizeChanged,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::AccountNotExecutable =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::AccountNotExecutable,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::AccountBorrowFailed =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::AccountBorrowFailed,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::AccountBorrowOutstanding =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::AccountBorrowOutstanding,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::DuplicateAccountOutOfSync =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::DuplicateAccountOutOfSync,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::Custom(error_code) => {
+                            let val = Some(Uint32Value::create(
+                                &mut builder,
+                                &Uint32ValueArgs {
+                                    value: error_code,
+                                }
+                            ).as_union_value());
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::Custom,
+                                    err_data_type: InstructionErrorInnerData::Custom,
+                                    err_data: val,
+                                },
+                            ))
+                        },
+                        solana_sdk::instruction::InstructionError::InvalidError =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::InvalidError,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ExecutableDataModified =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ExecutableDataModified,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ExecutableLamportChange =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ExecutableLamportChange,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ExecutableAccountNotRentExempt =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ExecutableAccountNotRentExempt,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::UnsupportedProgramId =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::UnsupportedProgramId,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::CallDepth =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::CallDepth,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::MissingAccount =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::MissingAccount,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ReentrancyNotAllowed =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ReentrancyNotAllowed,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::MaxSeedLengthExceeded =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::MaxSeedLengthExceeded,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::InvalidSeeds =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::InvalidSeeds,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::InvalidRealloc =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::InvalidRealloc,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ComputationalBudgetExceeded =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ComputationalBudgetExceeded,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::PrivilegeEscalation =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::PrivilegeEscalation,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ProgramEnvironmentSetupFailure =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ProgramEnvironmentSetupFailure,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ProgramFailedToComplete =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ProgramFailedToComplete,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ProgramFailedToCompile =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ProgramFailedToCompile,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::Immutable =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::Immutable,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::IncorrectAuthority =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::IncorrectAuthority,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::BorshIoError(msg) => {
+                            let m = Some(builder.create_string(&msg));
+                            let val = Some(StringValue::create(
+                                &mut builder,
+                                &StringValueArgs {
+                                    value: m,
+                                }
+                            ).as_union_value());
+
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::BorshIoError,
+                                    err_data_type: InstructionErrorInnerData::BorshIoError,
+                                    err_data: val,
+                                },
+                            ))
+                        }
+                        solana_sdk::instruction::InstructionError::AccountNotRentExempt =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::AccountNotRentExempt,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::InvalidAccountOwner =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::InvalidAccountOwner,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ArithmeticOverflow =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ArithmeticOverflow,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::UnsupportedSysvar =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::UnsupportedSysvar,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::IllegalOwner =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::IllegalOwner,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::MaxAccountsDataSizeExceeded =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::MaxAccountsDataSizeExceeded,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::ActiveVoteAccountClose =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::ActiveVoteAccountClose,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                    };
+                    let inner_error_data = Some(
+                        InstructionErrorData::create(
+                            &mut builder,
+                            &InstructionErrorDataArgs {
+                                instruction_number: index,
+                                err: inner_instruction,
+                            },
+                        )
+                        .as_union_value(),
+                    );
+
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InstructionError,
+                            err_data_type: TransactionErrorData::InstructionError,
+                            err_data: inner_error_data,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::CallChainTooDeep => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::CallChainTooDeep,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::MissingSignatureForFee => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::MissingSignatureForFee,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InvalidAccountIndex => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InvalidAccountIndex,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::SignatureFailure => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::SignatureFailure,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InvalidProgramForExecution => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InvalidProgramForExecution,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::SanitizeFailure => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::SanitizeFailure,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::ClusterMaintenance => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::ClusterMaintenance,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::AccountBorrowOutstanding => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::AccountBorrowOutstanding,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::WouldExceedMaxBlockCostLimit => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::WouldExceedMaxBlockCostLimit,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::UnsupportedVersion => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::UnsupportedVersion,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InvalidWritableAccount => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InvalidWritableAccount,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::WouldExceedMaxAccountCostLimit => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::WouldExceedMaxAccountCostLimit,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::WouldExceedAccountDataBlockLimit => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::WouldExceedAccountDataBlockLimit,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::TooManyAccountLocks => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::TooManyAccountLocks,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::AddressLookupTableNotFound => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::AddressLookupTableNotFound,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InvalidAddressLookupTableOwner => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InvalidAddressLookupTableOwner,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InvalidAddressLookupTableData => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InvalidAddressLookupTableData,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InvalidAddressLookupTableIndex => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InvalidAddressLookupTableIndex,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InvalidRentPayingAccount => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InvalidRentPayingAccount,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::WouldExceedMaxVoteCostLimit => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::WouldExceedMaxVoteCostLimit,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::WouldExceedAccountDataTotalLimit => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::WouldExceedAccountDataTotalLimit,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::DuplicateInstruction(index) => {
+                    let val = Some(
+                        InnerByte::create(&mut builder, &InnerByteArgs { inner_byte: index })
+                            .as_union_value(),
+                    );
+
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::DuplicateInstruction,
+                            err_data_type: TransactionErrorData::InnerByte,
+                            err_data: val,
+                        },
+                    ))
+                }
+                solana_sdk::transaction::TransactionError::InsufficientFundsForRent {
+                    account_index,
+                } => {
+                    let val = Some(
+                        InnerByte::create(
+                            &mut builder,
+                            &InnerByteArgs {
+                                inner_byte: account_index,
+                            },
+                        )
+                        .as_union_value(),
+                    );
+
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::InsufficientFundsForRent,
+                            err_data_type: TransactionErrorData::InnerByte,
+                            err_data: val,
+                        },
+                    ))
+                }
+            }
+        };
+
     let transaction_meta = Some(TransactionStatusMeta::create(
         &mut builder,
         &TransactionStatusMetaArgs {
-            status: transaction.transaction_meta.status.is_ok(),
+            status,
             fee: transaction.transaction_meta.fee,
             pre_balances,
             post_balances,
