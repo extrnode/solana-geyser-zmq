@@ -507,11 +507,6 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
             } else {
                 RewardType::None
             };
-            let commission = if let Some(commission) = reward.commission {
-                commission
-            } else {
-                0
-            };
 
             rewards_vec.push(Reward::create(
                 &mut builder,
@@ -520,7 +515,7 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
                     lamports: reward.lamports,
                     post_balance: reward.post_balance,
                     reward_type,
-                    commission,
+                    commission: reward.commission,
                 },
             ));
         }

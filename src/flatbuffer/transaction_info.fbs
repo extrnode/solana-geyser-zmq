@@ -240,7 +240,7 @@ table Reward {
     lamports: int64;
     post_balance: uint64;
     reward_type: RewardType;
-    commission: uint8;
+    commission: uint8 = null;
 }
 
 

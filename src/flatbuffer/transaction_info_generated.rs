@@ -15,18 +15,18 @@ pub mod transaction_info {
     use self::flatbuffers::{EndianScalar, Follow};
 
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MIN_SANITIZED_MESSAGE: u8 = 0;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MAX_SANITIZED_MESSAGE: u8 = 2;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
     pub const ENUM_VALUES_SANITIZED_MESSAGE: [SanitizedMessage; 3] = [
@@ -112,18 +112,18 @@ pub mod transaction_info {
     pub struct SanitizedMessageUnionTableOffset {}
 
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MIN_TRANSACTION_ERROR_TYPE: u8 = 0;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 31;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
     pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 32] = [
@@ -327,18 +327,18 @@ pub mod transaction_info {
 
     impl flatbuffers::SimpleToVerifyInSlice for TransactionErrorType {}
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MIN_INSTRUCTION_ERROR_TYPE: u8 = 0;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MAX_INSTRUCTION_ERROR_TYPE: u8 = 51;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
     pub const ENUM_VALUES_INSTRUCTION_ERROR_TYPE: [InstructionErrorType; 52] = [
@@ -622,18 +622,18 @@ pub mod transaction_info {
 
     impl flatbuffers::SimpleToVerifyInSlice for InstructionErrorType {}
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MIN_TRANSACTION_ERROR_DATA: u8 = 0;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MAX_TRANSACTION_ERROR_DATA: u8 = 2;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
     pub const ENUM_VALUES_TRANSACTION_ERROR_DATA: [TransactionErrorData; 3] = [
@@ -720,18 +720,18 @@ pub mod transaction_info {
     pub struct TransactionErrorDataUnionTableOffset {}
 
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MIN_INSTRUCTION_ERROR_INNER_DATA: u8 = 0;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MAX_INSTRUCTION_ERROR_INNER_DATA: u8 = 2;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
     pub const ENUM_VALUES_INSTRUCTION_ERROR_INNER_DATA: [InstructionErrorInnerData; 3] = [
@@ -817,18 +817,18 @@ pub mod transaction_info {
     pub struct InstructionErrorInnerDataUnionTableOffset {}
 
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MIN_REWARD_TYPE: u8 = 0;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     pub const ENUM_MAX_REWARD_TYPE: u8 = 4;
     #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
+    since = "2.0.0",
+    note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
     pub const ENUM_VALUES_REWARD_TYPE: [RewardType; 5] = [
@@ -1040,18 +1040,30 @@ pub mod transaction_info {
         ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature>>("signature", Self::VT_SIGNATURE, false)?
-     .visit_field::<bool>("is_vote", Self::VT_IS_VOTE, false)?
-     .visit_field::<u64>("slot", Self::VT_SLOT, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<SanitizedTransaction>>("transaction", Self::VT_TRANSACTION, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<TransactionStatusMeta>>("transaction_meta", Self::VT_TRANSACTION_META, false)?
-     .finish();
+                .visit_field::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Signature>>(
+                    "signature",
+                    Self::VT_SIGNATURE,
+                    false,
+                )?
+                .visit_field::<bool>("is_vote", Self::VT_IS_VOTE, false)?
+                .visit_field::<u64>("slot", Self::VT_SLOT, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<SanitizedTransaction>>(
+                    "transaction",
+                    Self::VT_TRANSACTION,
+                    false,
+                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<TransactionStatusMeta>>(
+                    "transaction_meta",
+                    Self::VT_TRANSACTION_META,
+                    false,
+                )?
+                .finish();
             Ok(())
         }
     }
     pub struct TransactionInfoArgs<'a> {
         pub signature:
-            Option<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Signature<'a>>>,
+        Option<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Signature<'a>>>,
         pub is_vote: bool,
         pub slot: u64,
         pub transaction: Option<flatbuffers::WIPOffset<SanitizedTransaction<'a>>>,
@@ -1080,7 +1092,11 @@ pub mod transaction_info {
             &mut self,
             signature: flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Signature<'b>>,
         ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Signature>>(TransactionInfo::VT_SIGNATURE, signature);
+            self.fbb_
+                .push_slot_always::<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Signature>>(
+                    TransactionInfo::VT_SIGNATURE,
+                    signature,
+                );
         }
         #[inline]
         pub fn add_is_vote(&mut self, is_vote: bool) {
@@ -2582,7 +2598,11 @@ pub mod transaction_info {
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>(MessageAddressTableLookup::VT_ACCOUNT_KEY, None)
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>(
+                        MessageAddressTableLookup::VT_ACCOUNT_KEY,
+                        None,
+                    )
             }
         }
         #[inline]
@@ -2621,16 +2641,28 @@ pub mod transaction_info {
         ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>("account_key", Self::VT_ACCOUNT_KEY, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("writable_indexes", Self::VT_WRITABLE_INDEXES, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("readonly_indexes", Self::VT_READONLY_INDEXES, false)?
-     .finish();
+                .visit_field::<flatbuffers::ForwardsUOffset<crate::flatbuffer::common_generated::Pubkey>>(
+                    "account_key",
+                    Self::VT_ACCOUNT_KEY,
+                    false,
+                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
+                    "writable_indexes",
+                    Self::VT_WRITABLE_INDEXES,
+                    false,
+                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
+                    "readonly_indexes",
+                    Self::VT_READONLY_INDEXES,
+                    false,
+                )?
+                .finish();
             Ok(())
         }
     }
     pub struct MessageAddressTableLookupArgs<'a> {
         pub account_key:
-            Option<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>,
+        Option<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Pubkey<'a>>>,
         pub writable_indexes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
         pub readonly_indexes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
     }
@@ -2655,7 +2687,11 @@ pub mod transaction_info {
             &mut self,
             account_key: flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Pubkey<'b>>,
         ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Pubkey>>(MessageAddressTableLookup::VT_ACCOUNT_KEY, account_key);
+            self.fbb_
+                .push_slot_always::<flatbuffers::WIPOffset<crate::flatbuffer::common_generated::Pubkey>>(
+                    MessageAddressTableLookup::VT_ACCOUNT_KEY,
+                    account_key,
+                );
         }
         #[inline]
         pub fn add_writable_indexes(
@@ -3710,15 +3746,15 @@ pub mod transaction_info {
         ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
-     .visit_field::<TransactionErrorType>("err_type", Self::VT_ERR_TYPE, false)?
-     .visit_union::<TransactionErrorData, _>("err_data_type", Self::VT_ERR_DATA_TYPE, "err_data", Self::VT_ERR_DATA, false, |key, v, pos| {
-        match key {
-          TransactionErrorData::InstructionError => v.verify_union_variant::<flatbuffers::ForwardsUOffset<InstructionErrorData>>("TransactionErrorData::InstructionError", pos),
-          TransactionErrorData::InnerByte => v.verify_union_variant::<flatbuffers::ForwardsUOffset<InnerByte>>("TransactionErrorData::InnerByte", pos),
-          _ => Ok(()),
-        }
-     })?
-     .finish();
+                .visit_field::<TransactionErrorType>("err_type", Self::VT_ERR_TYPE, false)?
+                .visit_union::<TransactionErrorData, _>("err_data_type", Self::VT_ERR_DATA_TYPE, "err_data", Self::VT_ERR_DATA, false, |key, v, pos| {
+                    match key {
+                        TransactionErrorData::InstructionError => v.verify_union_variant::<flatbuffers::ForwardsUOffset<InstructionErrorData>>("TransactionErrorData::InstructionError", pos),
+                        TransactionErrorData::InnerByte => v.verify_union_variant::<flatbuffers::ForwardsUOffset<InnerByte>>("TransactionErrorData::InnerByte", pos),
+                        _ => Ok(()),
+                    }
+                })?
+                .finish();
             Ok(())
         }
     }
@@ -4825,7 +4861,9 @@ pub mod transaction_info {
             if let Some(x) = args.pubkey {
                 builder.add_pubkey(x);
             }
-            builder.add_commission(args.commission);
+            if let Some(x) = args.commission {
+                builder.add_commission(x);
+            }
             builder.add_reward_type(args.reward_type);
             builder.finish()
         }
@@ -4870,11 +4908,11 @@ pub mod transaction_info {
             }
         }
         #[inline]
-        pub fn commission(&self) -> u8 {
+        pub fn commission(&self) -> Option<u8> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
-            unsafe { self._tab.get::<u8>(Reward::VT_COMMISSION, Some(0)).unwrap() }
+            unsafe { self._tab.get::<u8>(Reward::VT_COMMISSION, None) }
         }
     }
 
@@ -4904,7 +4942,7 @@ pub mod transaction_info {
         pub lamports: i64,
         pub post_balance: u64,
         pub reward_type: RewardType,
-        pub commission: u8,
+        pub commission: Option<u8>,
     }
     impl<'a> Default for RewardArgs<'a> {
         #[inline]
@@ -4914,7 +4952,7 @@ pub mod transaction_info {
                 lamports: 0,
                 post_balance: 0,
                 reward_type: RewardType::None,
-                commission: 0,
+                commission: None,
             }
         }
     }
@@ -4949,7 +4987,7 @@ pub mod transaction_info {
         #[inline]
         pub fn add_commission(&mut self, commission: u8) {
             self.fbb_
-                .push_slot::<u8>(Reward::VT_COMMISSION, commission, 0);
+                .push_slot_always::<u8>(Reward::VT_COMMISSION, commission);
         }
         #[inline]
         pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> RewardBuilder<'a, 'b> {
