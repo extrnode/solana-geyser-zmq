@@ -5,34 +5,39 @@ use crate::flatbuffer::transaction_info_generated::transaction_info::{
     InstructionErrorDataArgs, InstructionErrorInnerData, InstructionErrorType, LegacyMessage,
     LegacyMessageArgs, LoadedAddresses, LoadedAddressesArgs, LoadedMessageV0, LoadedMessageV0Args,
     MessageAddressTableLookup, MessageAddressTableLookupArgs, MessageHeader, MessageHeaderArgs,
-    MessageV0, MessageV0Args, Reward, RewardArgs, RewardType, SanitizedMessage,
-    SanitizedTransaction, SanitizedTransactionArgs, StringValue, StringValueArgs, TransactionError,
-    TransactionErrorArgs, TransactionErrorData, TransactionErrorType, TransactionInfo,
-    TransactionInfoArgs, TransactionStatusMeta, TransactionStatusMetaArgs, TransactionTokenBalance,
-    TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs, Uint32Value, Uint32ValueArgs,
+    MessageV0, MessageV0Args, SanitizedMessage, SanitizedTransaction, SanitizedTransactionArgs,
+    StringValue, StringValueArgs, TransactionError, TransactionErrorArgs, TransactionErrorData,
+    TransactionErrorType, TransactionInfo, TransactionInfoArgs, TransactionStatusMeta,
+    TransactionStatusMetaArgs, TransactionTokenBalance, TransactionTokenBalanceArgs, UiTokenAmount,
+    UiTokenAmountArgs, Uint32Value, Uint32ValueArgs,
 };
 use account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
-use common_generated::{
+use common_generated::common::{
     Pubkey as FlatBufferPubkey, PubkeyArgs as FlatBufferPubkeyArgs,
     Signature as FlatBufferSignature, SignatureArgs as FlatBufferSignatureArgs,
 };
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
-use solana_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
+use solana_geyser_plugin_interface::geyser_plugin_interface::{ReplicaBlockInfo, SlotStatus};
 pub use solana_program::hash::Hash;
 use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
 
-use self::slot_generated::slot::{Slot, SlotArgs, Status};
+use self::{
+    block_info_generated::block_info::{BlockInfo, BlockInfoArgs},
+    common_generated::common::{Reward, RewardArgs, RewardType},
+    slot_generated::slot::{Slot, SlotArgs, Status},
+};
 
 #[allow(dead_code)]
 mod account_info_generated;
+#[allow(dead_code)]
+mod block_info_generated;
 #[allow(dead_code)]
 mod common_generated;
 #[allow(dead_code)]
 mod slot_generated;
 #[allow(dead_code)]
 mod transaction_info_generated;
-
 /// Struct which implements FlatBuffer serialization for accounts, block metadata and transactions data
 #[derive(Debug, Copy, Clone)]
 pub struct FlatBufferSerialization {}
@@ -40,6 +45,7 @@ pub struct FlatBufferSerialization {}
 const BYTE_PREFIX_ACCOUNT: u8 = 0;
 const BYTE_PREFIX_SLOT: u8 = 1;
 const BYTE_PREFIX_TX: u8 = 2;
+const BYTE_PREFIX_BLOCK: u8 = 3;
 
 pub struct AccountUpdate {
     /// The account's public key
@@ -125,6 +131,62 @@ pub fn serialize_slot<'a>(slot: u64, status: SlotStatus) -> Vec<u8> {
     builder.finish(s, None);
 
     let mut output = vec![BYTE_PREFIX_SLOT];
+    output.extend(builder.finished_data().to_vec());
+
+    output
+}
+
+pub fn serialize_block<'a>(block: &'a ReplicaBlockInfo) -> Vec<u8> {
+    let mut builder = FlatBufferBuilder::new();
+
+    let rewards = if block.rewards.len() > 0 {
+        let mut rewards_vec = Vec::with_capacity(block.rewards.len());
+        for reward in block.rewards {
+            let pubkey = Some(builder.create_string(&reward.pubkey));
+            let reward_type = if let Some(rwrd_type) = reward.reward_type {
+                match rwrd_type {
+                    solana_transaction_status::RewardType::Fee => RewardType::Fee,
+                    solana_transaction_status::RewardType::Rent => RewardType::Rent,
+                    solana_transaction_status::RewardType::Staking => RewardType::Staking,
+                    solana_transaction_status::RewardType::Voting => RewardType::Voting,
+                }
+            } else {
+                RewardType::None
+            };
+
+            rewards_vec.push(Reward::create(
+                &mut builder,
+                &RewardArgs {
+                    pubkey,
+                    lamports: reward.lamports,
+                    post_balance: reward.post_balance,
+                    reward_type,
+                    commission: reward.commission,
+                },
+            ));
+        }
+
+        Some(builder.create_vector(rewards_vec.as_ref()))
+    } else {
+        None
+    };
+
+    let blockhash = builder.create_string(block.blockhash);
+
+    let b = BlockInfo::create(
+        &mut builder,
+        &BlockInfoArgs {
+            slot: block.slot,
+            blockhash: Some(blockhash),
+            block_time: block.block_time.unwrap_or(0),
+            block_height: block.block_height.unwrap_or(0),
+            rewards,
+        },
+    );
+
+    builder.finish(b, None);
+
+    let mut output = vec![BYTE_PREFIX_BLOCK];
     output.extend(builder.finished_data().to_vec());
 
     output

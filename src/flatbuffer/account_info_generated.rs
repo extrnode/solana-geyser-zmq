@@ -7,7 +7,7 @@ extern crate flatbuffers;
 #[allow(unused_imports, dead_code)]
 pub mod account_info {
 
-    use crate::flatbuffer::common_generated::Pubkey;
+    use crate::flatbuffer::common_generated::common::{Pubkey, Reward, Signature};
     use core::cmp::Ordering;
     use core::mem;
 

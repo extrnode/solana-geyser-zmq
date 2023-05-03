@@ -4,5 +4,6 @@
     "zmq_no_wait": true,
     "http_port": 8555,
     "sqlite_filepath": "./local.db",
-    "skip_vote_txs": true
+    "skip_vote_txs": true,
+    "send_blocks": true
 }

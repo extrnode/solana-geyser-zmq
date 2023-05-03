@@ -31,6 +31,7 @@ pub struct Inner {
     zmq_flag: i32,
     metrics: Arc<Metrics>,
     filters: Arc<GeyserFilters>,
+    send_blocks: bool,
 }
 
 impl GeyserPluginHook {
@@ -107,6 +108,7 @@ impl GeyserPlugin for GeyserPluginHook {
             zmq_flag: if cfg.zmq_no_wait { zmq::DONTWAIT } else { 0 },
             metrics: metrics.clone(),
             filters: Arc::clone(&filters),
+            send_blocks: cfg.send_blocks,
         }));
 
         if let Some(http_port) = cfg.http_port {
@@ -240,8 +242,29 @@ impl GeyserPlugin for GeyserPluginHook {
         )
     }
 
-    fn notify_block_metadata(&mut self, _blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
-        Ok(())
+    fn notify_block_metadata(&mut self, blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
+        self.with_inner(
+            || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
+            |inner| {
+                if !inner.send_blocks {
+                    return Ok(());
+                }
+
+                match blockinfo {
+                    ReplicaBlockInfoVersions::V0_0_1(block) => {
+                        let data = flatbuffer::serialize_block(block);
+                        inner
+                            .socket
+                            .lock()
+                            .unwrap()
+                            .send(data, inner.zmq_flag)
+                            .map_err(|_| GeyserError::ZmqSend)?;
+                    }
+                };
+
+                Ok(())
+            },
+        )
     }
 
     fn account_data_notifications_enabled(&self) -> bool {
