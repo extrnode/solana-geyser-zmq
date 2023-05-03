@@ -9,6 +9,8 @@ pub struct Config {
     pub sqlite_filepath: String,
 
     pub skip_vote_txs: bool,
+
+    pub send_blocks: bool,
 }
 
 impl Config {

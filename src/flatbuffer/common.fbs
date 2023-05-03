@@ -7,3 +7,19 @@ table Pubkey {
 table Signature {
   key: [uint8];
 }
+
+enum RewardType: uint8 {
+  None,
+  Fee,
+  Rent,
+  Staking,
+  Voting,
+}
+
+table Reward {
+    pubkey: string;
+    lamports: int64;
+    post_balance: uint64;
+    reward_type: RewardType;
+    commission: uint8 = null;
+}
