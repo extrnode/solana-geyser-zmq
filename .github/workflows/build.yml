@@ -55,11 +55,11 @@ jobs:
           command: fmt
           args: --all -- --check
 
-#      - name: cargo clippy
-#        uses: actions-rs/cargo@v1
-#        with:
-#          command: clippy
-#          args: --workspace --all-targets -- --deny=warnings
+      - name: cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace --all-targets -- --deny=warnings
 
       - name: Build
         run: ./ci/cargo-build-test.sh
