@@ -19,6 +19,6 @@ fn main() {
             println!("{}", x);
         }
         thread::sleep(time::Duration::from_micros(100));
-        x = x + 1;
+        x += 1;
     }
 }

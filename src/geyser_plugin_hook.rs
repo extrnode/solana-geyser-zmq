@@ -1,9 +1,6 @@
 use crate::{
-    api::Api,
     config::Config,
-    db::DB,
     errors::GeyserError,
-    filters::GeyserFilters,
     flatbuffer::{self, AccountUpdate, TransactionUpdate},
     metrics::Metrics,
 };
@@ -30,8 +27,7 @@ pub struct Inner {
     socket: Mutex<zmq::Socket>,
     zmq_flag: i32,
     metrics: Arc<Metrics>,
-    filters: Arc<GeyserFilters>,
-    send_blocks: bool,
+    config: Config,
 }
 
 impl GeyserPluginHook {
@@ -50,9 +46,6 @@ impl GeyserPluginHook {
                         match e {
                             GeyserError::ZmqSend => {
                                 inner.metrics.send_errs.fetch_add(1, Ordering::Relaxed);
-                            }
-                            _ => {
-                                inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
                             }
                         }
 
@@ -88,7 +81,6 @@ impl GeyserPlugin for GeyserPluginHook {
         let metrics = Metrics::new_rc();
 
         let cfg = Config::read(config_file).unwrap();
-        let db = DB::new(cfg.sqlite_filepath).unwrap();
 
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::PUSH).unwrap();
@@ -101,20 +93,12 @@ impl GeyserPlugin for GeyserPluginHook {
 
         info!("[on_load] - socket created");
 
-        let filters = GeyserFilters::new_arc(&db, cfg.skip_vote_txs);
-
         self.0 = Some(Arc::new(Inner {
             socket: Mutex::new(socket),
             zmq_flag: if cfg.zmq_no_wait { zmq::DONTWAIT } else { 0 },
             metrics: metrics.clone(),
-            filters: Arc::clone(&filters),
-            send_blocks: cfg.send_blocks,
+            config: cfg,
         }));
-
-        if let Some(http_port) = cfg.http_port {
-            let api = Api::new(http_port, filters).unwrap();
-            thread::spawn(move || api.start(db));
-        }
 
         thread::spawn(move || {
             metrics.spin(Duration::from_secs(10));
@@ -216,24 +200,24 @@ impl GeyserPlugin for GeyserPluginHook {
             |inner| {
                 match transaction {
                     ReplicaTransactionInfoVersions::V0_0_1(tx) => {
-                        if inner
-                            .filters
-                            .should_send(tx.transaction.message(), tx.is_vote)
-                        {
-                            let data = flatbuffer::serialize_transaction(&TransactionUpdate {
-                                signature: *tx.signature,
-                                is_vote: tx.is_vote,
-                                slot,
-                                transaction: tx.transaction.clone(),
-                                transaction_meta: tx.transaction_status_meta.clone(),
-                            });
-                            inner
-                                .socket
-                                .lock()
-                                .unwrap()
-                                .send(data, inner.zmq_flag)
-                                .map_err(|_| GeyserError::ZmqSend)?;
+                        if tx.is_vote && inner.config.skip_vote_txs {
+                            return Ok(());
                         }
+
+                        let data = flatbuffer::serialize_transaction(&TransactionUpdate {
+                            signature: *tx.signature,
+                            is_vote: tx.is_vote,
+                            slot,
+                            transaction: tx.transaction.clone(),
+                            transaction_meta: tx.transaction_status_meta.clone(),
+                        });
+
+                        inner
+                            .socket
+                            .lock()
+                            .unwrap()
+                            .send(data, inner.zmq_flag)
+                            .map_err(|_| GeyserError::ZmqSend)?;
                     }
                 };
 
@@ -246,7 +230,7 @@ impl GeyserPlugin for GeyserPluginHook {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
-                if !inner.send_blocks {
+                if !inner.config.send_blocks {
                     return Ok(());
                 }
 
@@ -268,11 +252,19 @@ impl GeyserPlugin for GeyserPluginHook {
     }
 
     fn account_data_notifications_enabled(&self) -> bool {
-        true
+        if let Some(inner) = self.0.as_ref() {
+            inner.config.send_accounts
+        } else {
+            false
+        }
     }
 
     fn transaction_notifications_enabled(&self) -> bool {
-        true
+        if let Some(inner) = self.0.as_ref() {
+            inner.config.send_transactions
+        } else {
+            false
+        }
     }
 }
 

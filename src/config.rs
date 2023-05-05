@@ -5,12 +5,11 @@ pub struct Config {
     pub zmq_port: usize,
     pub zmq_no_wait: bool,
 
-    pub http_port: Option<usize>,
-    pub sqlite_filepath: String,
+    pub send_transactions: bool,
+    pub send_accounts: bool,
+    pub send_blocks: bool,
 
     pub skip_vote_txs: bool,
-
-    pub send_blocks: bool,
 }
 
 impl Config {

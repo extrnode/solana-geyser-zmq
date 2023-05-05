@@ -28,15 +28,15 @@ use self::{
     slot_generated::slot::{Slot, SlotArgs, Status},
 };
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::all)]
 mod account_info_generated;
-#[allow(dead_code)]
+#[allow(dead_code, clippy::all)]
 mod block_info_generated;
-#[allow(dead_code)]
+#[allow(dead_code, clippy::all)]
 mod common_generated;
-#[allow(dead_code)]
+#[allow(dead_code, clippy::all)]
 mod slot_generated;
-#[allow(dead_code)]
+#[allow(dead_code, clippy::all)]
 mod transaction_info_generated;
 /// Struct which implements FlatBuffer serialization for accounts, block metadata and transactions data
 #[derive(Debug, Copy, Clone)]
@@ -113,7 +113,7 @@ pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
     output
 }
 
-pub fn serialize_slot<'a>(slot: u64, status: SlotStatus) -> Vec<u8> {
+pub fn serialize_slot(slot: u64, status: SlotStatus) -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
 
     let s = Slot::create(
@@ -136,10 +136,10 @@ pub fn serialize_slot<'a>(slot: u64, status: SlotStatus) -> Vec<u8> {
     output
 }
 
-pub fn serialize_block<'a>(block: &'a ReplicaBlockInfo) -> Vec<u8> {
+pub fn serialize_block(block: &ReplicaBlockInfo) -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
 
-    let rewards = if block.rewards.len() > 0 {
+    let rewards = if !block.rewards.is_empty() {
         let mut rewards_vec = Vec::with_capacity(block.rewards.len());
         for reward in block.rewards {
             let pubkey = Some(builder.create_string(&reward.pubkey));
