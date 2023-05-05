@@ -1,0 +1,232 @@
+include "common.fbs";
+
+namespace TransactionInfo;
+
+table TransactionInfo {
+  signature: Common.Signature;
+  is_vote: bool;
+  slot: uint64;
+  transaction: SanitizedTransaction;
+  transaction_meta: TransactionStatusMeta;
+}
+
+union SanitizedMessage {
+  Legacy: LegacyMessage,
+  V0: LoadedMessageV0,
+}
+
+table SanitizedTransaction {
+  message: SanitizedMessage;
+  message_hash: [uint8];
+  is_simple_vote_tx: bool;
+  signatures: [Common.Signature];
+}
+
+
+table LegacyMessage {
+  header: MessageHeader;
+  account_keys: [Common.Pubkey];
+  recent_blockhash: [uint8];
+  instructions: [CompiledInstruction];
+}
+
+
+table MessageHeader {
+  num_required_signatures: uint8;
+  num_readonly_signed_accounts: uint8;
+  num_readonly_unsigned_accounts: uint8;
+}
+
+table CompiledInstruction {
+  program_id_index: uint8;
+  accounts: [uint8];
+  data: [uint8];
+}
+
+table LoadedMessageV0 {
+  message: MessageV0;
+  loaded_addresses: LoadedAddresses;
+}
+
+table MessageV0 {
+  header: MessageHeader;
+  account_keys: [Common.Pubkey];
+  recent_blockhash: [uint8];
+  instructions: [CompiledInstruction];
+  address_table_lookups: [MessageAddressTableLookup];
+}
+
+table MessageAddressTableLookup {
+  account_key: Common.Pubkey;
+  writable_indexes: [uint8];
+  readonly_indexes: [uint8];
+}
+
+table LoadedAddresses {
+  writable: [Common.Pubkey];
+  readonly: [Common.Pubkey];
+}
+
+
+enum TransactionErrorType: uint8 {
+    AccountInUse,
+    AccountLoadedTwice,
+    AccountNotFound,
+    ProgramAccountNotFound,
+    InsufficientFundsForFee,
+    InvalidAccountForFee,
+    AlreadyProcessed,
+    BlockhashNotFound,
+    InstructionError,
+    CallChainTooDeep,
+    MissingSignatureForFee,
+    InvalidAccountIndex,
+    SignatureFailure,
+    InvalidProgramForExecution,
+    SanitizeFailure,
+    ClusterMaintenance,
+    AccountBorrowOutstanding,
+    WouldExceedMaxBlockCostLimit,
+    UnsupportedVersion,
+    InvalidWritableAccount,
+    WouldExceedMaxAccountCostLimit,
+    WouldExceedAccountDataBlockLimit,
+    TooManyAccountLocks,
+    AddressLookupTableNotFound,
+    InvalidAddressLookupTableOwner,
+    InvalidAddressLookupTableData,
+    InvalidAddressLookupTableIndex,
+    InvalidRentPayingAccount,
+    WouldExceedMaxVoteCostLimit,
+    WouldExceedAccountDataTotalLimit,
+    DuplicateInstruction,
+    InsufficientFundsForRent,
+}
+
+enum InstructionErrorType: uint8 {
+    GenericError,
+    InvalidArgument,
+    InvalidInstructionData,
+    InvalidAccountData,
+    AccountDataTooSmall,
+    InsufficientFunds,
+    IncorrectProgramId,
+    MissingRequiredSignature,
+    AccountAlreadyInitialized,
+    UninitializedAccount,
+    UnbalancedInstruction,
+    ModifiedProgramId,
+    ExternalAccountLamportSpend,
+    ExternalAccountDataModified,
+    ReadonlyLamportChange,
+    ReadonlyDataModified,
+    DuplicateAccountIndex,
+    ExecutableModified,
+    RentEpochModified,
+    NotEnoughAccountKeys,
+    AccountDataSizeChanged,
+    AccountNotExecutable,
+    AccountBorrowFailed,
+    AccountBorrowOutstanding,
+    DuplicateAccountOutOfSync,
+    Custom,
+    InvalidError,
+    ExecutableDataModified,
+    ExecutableLamportChange,
+    ExecutableAccountNotRentExempt,
+    UnsupportedProgramId,
+    CallDepth,
+    MissingAccount,
+    ReentrancyNotAllowed,
+    MaxSeedLengthExceeded,
+    InvalidSeeds,
+    InvalidRealloc,
+    ComputationalBudgetExceeded,
+    PrivilegeEscalation,
+    ProgramEnvironmentSetupFailure,
+    ProgramFailedToComplete,
+    ProgramFailedToCompile,
+    Immutable,
+    IncorrectAuthority,
+    BorshIoError,
+    AccountNotRentExempt,
+    InvalidAccountOwner,
+    ArithmeticOverflow,
+    UnsupportedSysvar,
+    IllegalOwner,
+    MaxAccountsDataSizeExceeded,
+    ActiveVoteAccountClose,
+}
+
+union TransactionErrorData {
+    InstructionError: InstructionErrorData,
+    InnerByte: InnerByte,
+}
+
+table InstructionErrorData {
+    instruction_number: uint8;
+    err: InstructionError;
+}
+
+table InnerByte {
+    inner_byte: uint8;
+}
+
+union InstructionErrorInnerData {
+    BorshIoError: StringValue,
+    Custom: Uint32Value,
+}
+
+table StringValue {
+  value: string;
+}
+
+table Uint32Value {
+  value: uint32;
+}
+
+table InstructionError {
+    err_type: InstructionErrorType;
+    err_data: InstructionErrorInnerData;
+}
+
+table TransactionError {
+    err_type: TransactionErrorType;
+    err_data: TransactionErrorData;
+}
+
+table TransactionStatusMeta {
+    status: TransactionError;
+    fee: uint64;
+    pre_balances: [uint64];
+    post_balances: [uint64];
+    inner_instructions: [InnerInstructions];
+    log_messages: [string];
+    pre_token_balances: [TransactionTokenBalance];
+    post_token_balances: [TransactionTokenBalance];
+    rewards: [Common.Reward];
+}
+
+table InnerInstructions {
+    index: uint8;
+    instructions: [CompiledInstruction];
+}
+
+table TransactionTokenBalance {
+    account_index: uint8;
+    mint: string;
+    ui_token_amount: UiTokenAmount;
+    owner: string;
+    program_id: string;
+}
+
+table UiTokenAmount {
+    ui_amount: float64;
+    decimals: uint8;
+    amount: string;
+    ui_amount_string: string;
+}
+
+
+
+root_type TransactionInfo;

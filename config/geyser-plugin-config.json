@@ -1,5 +1,9 @@
 {
     "libpath": "../target/release/libsolana_geyser_plugin_scaffold.so",
     "zmq_port": 2000,
-    "zmq_no_wait": true
+    "zmq_no_wait": true,
+    "send_transactions": true,
+    "send_accounts": true,
+    "send_blocks": true,
+    "skip_vote_txs": true
 }

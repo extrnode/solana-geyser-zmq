@@ -1,13 +1,11 @@
+include "common.fbs";
+
 namespace AccountInfo;
 
-table Pubkey {
-  key: [uint8];
-}
-
 table AccountInfo {
-  pubkey: Pubkey;
+  pubkey: Common.Pubkey;
   lamports: uint64;
-  owner: Pubkey;
+  owner: Common.Pubkey;
   executable: bool;
   rent_epoch: uint64;
   data: [uint8];

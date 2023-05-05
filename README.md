@@ -16,22 +16,20 @@ If a specific rust version not used for building, segmentation faults occur duri
     docker run --rm -v $(PWD):/app -w /app rust:1.60.0 cargo b --release
 ```
 
-### Geyser Plugin Config
-
+### Testing
 The dynamic library path is provided to the validator using the `--geyser-plugin-config` parameter.
+
 For example when using the test validator:
 ```bash
 solana-test-validator --geyser-plugin-config config/geyser-plugin-config.json
 # or use ./scripts/run.sh
 ```
 
-At a minimum the config file should:
-- Be in JSON format
-- Contain the path to your geyser plugin dynamic library _.so_ or (_dylib_ on mac)
+Make sure the path to your geyser plugin dynamic library has a proper path relative to a config file and a proper extenstion -  _.so_ or (_.dylib_ on mac)
 
 For example:
 ```json
 {
-    "libpath": "libsolana_geyser_plugin_scaffold.so"
+    "libpath": "../target/release/libsolana_geyser_plugin_scaffold.so",
 }
 ```

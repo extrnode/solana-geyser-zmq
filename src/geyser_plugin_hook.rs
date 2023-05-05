@@ -1,9 +1,10 @@
 use crate::{
     config::Config,
-    flatbuffer::{self, AccountUpdate},
+    errors::GeyserError,
+    flatbuffer::{self, AccountUpdate, TransactionUpdate},
     metrics::Metrics,
 };
-use log::{error, info};
+use log::info;
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use solana_program::pubkey::Pubkey;
 use std::{
@@ -15,14 +16,8 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum GeyserError {
-    #[error("zmq send error")]
-    ZmqSend,
-}
-const UNINIT: &str = "ZMQ plugin not initialized yet!";
+const UNINIT: &str = "Geyser plugin not initialized yet!";
 
 /// This is the main object returned bu our dynamic library in entrypoint.rs
 #[derive(Default)]
@@ -32,6 +27,7 @@ pub struct Inner {
     socket: Mutex<zmq::Socket>,
     zmq_flag: i32,
     metrics: Arc<Metrics>,
+    config: Config,
 }
 
 impl GeyserPluginHook {
@@ -82,8 +78,10 @@ impl GeyserPlugin for GeyserPluginHook {
     fn on_load(&mut self, config_file: &str) -> Result<()> {
         solana_logger::setup_with_default("info");
 
-        let cfg = Config::read(config_file).unwrap();
         let metrics = Metrics::new_rc();
+
+        let cfg = Config::read(config_file).unwrap();
+
         let ctx = zmq::Context::new();
         let socket = ctx.socket(zmq::PUSH).unwrap();
 
@@ -99,6 +97,7 @@ impl GeyserPlugin for GeyserPluginHook {
             socket: Mutex::new(socket),
             zmq_flag: if cfg.zmq_no_wait { zmq::DONTWAIT } else { 0 },
             metrics: metrics.clone(),
+            config: cfg,
         }));
 
         thread::spawn(move || {
@@ -196,19 +195,76 @@ impl GeyserPlugin for GeyserPluginHook {
         transaction: ReplicaTransactionInfoVersions,
         slot: u64,
     ) -> Result<()> {
-        Ok(())
+        self.with_inner(
+            || GeyserPluginError::TransactionUpdateError { msg: UNINIT.into() },
+            |inner| {
+                match transaction {
+                    ReplicaTransactionInfoVersions::V0_0_1(tx) => {
+                        if tx.is_vote && inner.config.skip_vote_txs {
+                            return Ok(());
+                        }
+
+                        let data = flatbuffer::serialize_transaction(&TransactionUpdate {
+                            signature: *tx.signature,
+                            is_vote: tx.is_vote,
+                            slot,
+                            transaction: tx.transaction.clone(),
+                            transaction_meta: tx.transaction_status_meta.clone(),
+                        });
+
+                        inner
+                            .socket
+                            .lock()
+                            .unwrap()
+                            .send(data, inner.zmq_flag)
+                            .map_err(|_| GeyserError::ZmqSend)?;
+                    }
+                };
+
+                Ok(())
+            },
+        )
     }
 
-    fn notify_block_metadata(&mut self, _blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
-        Ok(())
+    fn notify_block_metadata(&mut self, blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
+        self.with_inner(
+            || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
+            |inner| {
+                if !inner.config.send_blocks {
+                    return Ok(());
+                }
+
+                match blockinfo {
+                    ReplicaBlockInfoVersions::V0_0_1(block) => {
+                        let data = flatbuffer::serialize_block(block);
+                        inner
+                            .socket
+                            .lock()
+                            .unwrap()
+                            .send(data, inner.zmq_flag)
+                            .map_err(|_| GeyserError::ZmqSend)?;
+                    }
+                };
+
+                Ok(())
+            },
+        )
     }
 
     fn account_data_notifications_enabled(&self) -> bool {
-        true
+        if let Some(inner) = self.0.as_ref() {
+            inner.config.send_accounts
+        } else {
+            false
+        }
     }
 
     fn transaction_notifications_enabled(&self) -> bool {
-        false
+        if let Some(inner) = self.0.as_ref() {
+            inner.config.send_transactions
+        } else {
+            false
+        }
     }
 }
 

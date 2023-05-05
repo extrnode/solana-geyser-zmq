@@ -4,6 +4,12 @@ use serde::Deserialize;
 pub struct Config {
     pub zmq_port: usize,
     pub zmq_no_wait: bool,
+
+    pub send_transactions: bool,
+    pub send_accounts: bool,
+    pub send_blocks: bool,
+
+    pub skip_vote_txs: bool,
 }
 
 impl Config {

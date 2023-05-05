@@ -1,0 +1,13 @@
+include "common.fbs";
+
+namespace BlockInfo;
+
+table BlockInfo {
+  slot: ulong;
+  blockhash: string;
+  rewards: [Common.Reward];
+  block_time: long;
+  block_height: ulong;
+}
+
+root_type BlockInfo;
