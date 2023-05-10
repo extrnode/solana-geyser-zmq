@@ -4,6 +4,7 @@ enum Status: byte { Processed, Rooted, Confirmed }
 
 table Slot {
   slot: uint64;
+  parent: uint64 = null;
   status: Status;
 }
 
