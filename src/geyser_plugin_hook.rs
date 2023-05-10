@@ -169,13 +169,13 @@ impl GeyserPlugin for GeyserPluginHook {
     fn update_slot_status(
         &mut self,
         slot: u64,
-        _parent: Option<u64>,
+        parent: Option<u64>,
         status: SlotStatus,
     ) -> Result<()> {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
-                let data = flatbuffer::serialize_slot(slot, status);
+                let data = flatbuffer::serialize_slot(slot, parent, status);
                 inner
                     .socket
                     .lock()
