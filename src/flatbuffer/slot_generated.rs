@@ -124,7 +124,8 @@ pub mod slot {
 
     impl<'a> Slot<'a> {
         pub const VT_SLOT: flatbuffers::VOffsetT = 4;
-        pub const VT_STATUS: flatbuffers::VOffsetT = 6;
+        pub const VT_PARENT: flatbuffers::VOffsetT = 6;
+        pub const VT_STATUS: flatbuffers::VOffsetT = 8;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -136,6 +137,9 @@ pub mod slot {
             args: &'args SlotArgs,
         ) -> flatbuffers::WIPOffset<Slot<'bldr>> {
             let mut builder = SlotBuilder::new(_fbb);
+            if let Some(x) = args.parent {
+                builder.add_parent(x);
+            }
             builder.add_slot(args.slot);
             builder.add_status(args.status);
             builder.finish()
@@ -147,6 +151,13 @@ pub mod slot {
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe { self._tab.get::<u64>(Slot::VT_SLOT, Some(0)).unwrap() }
+        }
+        #[inline]
+        pub fn parent(&self) -> Option<u64> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe { self._tab.get::<u64>(Slot::VT_PARENT, None) }
         }
         #[inline]
         pub fn status(&self) -> Status {
@@ -170,6 +181,7 @@ pub mod slot {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
                 .visit_field::<u64>("slot", Self::VT_SLOT, false)?
+                .visit_field::<u64>("parent", Self::VT_PARENT, false)?
                 .visit_field::<Status>("status", Self::VT_STATUS, false)?
                 .finish();
             Ok(())
@@ -177,6 +189,7 @@ pub mod slot {
     }
     pub struct SlotArgs {
         pub slot: u64,
+        pub parent: Option<u64>,
         pub status: Status,
     }
     impl<'a> Default for SlotArgs {
@@ -184,6 +197,7 @@ pub mod slot {
         fn default() -> Self {
             SlotArgs {
                 slot: 0,
+                parent: None,
                 status: Status::Processed,
             }
         }
@@ -197,6 +211,10 @@ pub mod slot {
         #[inline]
         pub fn add_slot(&mut self, slot: u64) {
             self.fbb_.push_slot::<u64>(Slot::VT_SLOT, slot, 0);
+        }
+        #[inline]
+        pub fn add_parent(&mut self, parent: u64) {
+            self.fbb_.push_slot_always::<u64>(Slot::VT_PARENT, parent);
         }
         #[inline]
         pub fn add_status(&mut self, status: Status) {
@@ -222,6 +240,7 @@ pub mod slot {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
             let mut ds = f.debug_struct("Slot");
             ds.field("slot", &self.slot());
+            ds.field("parent", &self.parent());
             ds.field("status", &self.status());
             ds.finish()
         }
