@@ -113,7 +113,7 @@ pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
     output
 }
 
-pub fn serialize_slot(slot: u64, parent: Option<u64>,status: SlotStatus) -> Vec<u8> {
+pub fn serialize_slot(slot: u64, parent: Option<u64>, status: SlotStatus) -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
 
     let s = Slot::create(
