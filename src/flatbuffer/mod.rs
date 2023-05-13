@@ -2,14 +2,11 @@
 use crate::flatbuffer::transaction_info_generated::transaction_info::{
     CompiledInstruction, CompiledInstructionArgs, InnerByte, InnerByteArgs, InnerInstructions,
     InnerInstructionsArgs, InstructionError, InstructionErrorArgs, InstructionErrorData,
-    InstructionErrorDataArgs, InstructionErrorInnerData, InstructionErrorType, LegacyMessage,
-    LegacyMessageArgs, LoadedAddresses, LoadedAddressesArgs, LoadedMessageV0, LoadedMessageV0Args,
-    MessageAddressTableLookup, MessageAddressTableLookupArgs, MessageHeader, MessageHeaderArgs,
-    MessageV0, MessageV0Args, SanitizedMessage, SanitizedTransaction, SanitizedTransactionArgs,
-    StringValue, StringValueArgs, TransactionError, TransactionErrorArgs, TransactionErrorData,
-    TransactionErrorType, TransactionInfo, TransactionInfoArgs, TransactionStatusMeta,
-    TransactionStatusMetaArgs, TransactionTokenBalance, TransactionTokenBalanceArgs, UiTokenAmount,
-    UiTokenAmountArgs, Uint32Value, Uint32ValueArgs,
+    InstructionErrorDataArgs, InstructionErrorInnerData, InstructionErrorType, LoadedAddresses,
+    LoadedAddressesArgs, StringValue, StringValueArgs, TransactionError, TransactionErrorArgs,
+    TransactionErrorData, TransactionErrorType, TransactionInfo, TransactionInfoArgs,
+    TransactionStatusMeta, TransactionStatusMetaArgs, TransactionTokenBalance,
+    TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs, Uint32Value, Uint32ValueArgs,
 };
 use account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
 use common_generated::common::{
@@ -113,7 +110,7 @@ pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
     output
 }
 
-pub fn serialize_slot(slot: u64, parent: Option<u64>,status: SlotStatus) -> Vec<u8> {
+pub fn serialize_slot(slot: u64, parent: Option<u64>, status: SlotStatus) -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
 
     let s = Slot::create(
@@ -234,189 +231,47 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
         )
     }
 
-    let message = Some(match &transaction.transaction.message() {
-        solana_sdk::message::SanitizedMessage::Legacy(legacy_message) => {
-            let header = Some(MessageHeader::create(
-                &mut builder,
-                &MessageHeaderArgs {
-                    num_required_signatures: legacy_message.header.num_required_signatures,
-                    num_readonly_signed_accounts: legacy_message
-                        .header
-                        .num_readonly_signed_accounts,
-                    num_readonly_unsigned_accounts: legacy_message
-                        .header
-                        .num_readonly_unsigned_accounts,
-                },
-            ));
+    let signatures = transaction.transaction.signatures().to_vec();
+    let (message, loaded_addresses) = match &transaction.transaction.message() {
+        solana_sdk::message::SanitizedMessage::Legacy(legacy_message) => (
+            solana_program::message::VersionedMessage::Legacy(legacy_message.clone()),
+            None,
+        ),
+        solana_sdk::message::SanitizedMessage::V0(loaded_message_v0) => (
+            solana_program::message::VersionedMessage::V0(
+                loaded_message_v0.message.clone().into_owned(),
+            ),
+            {
+                let writable = loaded_message_v0
+                    .loaded_addresses
+                    .writable
+                    .iter()
+                    .map(|key| make_pubkey(&mut builder, key))
+                    .collect::<Vec<_>>();
+                let writable = Some(builder.create_vector(writable.as_ref()));
 
-            let mut compiled_instructions = Vec::with_capacity(legacy_message.instructions.len());
+                let readonly = loaded_message_v0
+                    .loaded_addresses
+                    .readonly
+                    .iter()
+                    .map(|key| make_pubkey(&mut builder, key))
+                    .collect::<Vec<_>>();
+                let readonly = Some(builder.create_vector(readonly.as_ref()));
 
-            for instruction in &legacy_message.instructions {
-                let accounts = Some(builder.create_vector(instruction.accounts.as_ref()));
-                let data = Some(builder.create_vector(instruction.data.as_ref()));
-                compiled_instructions.push(CompiledInstruction::create(
+                let loaded_addresses = LoadedAddresses::create(
                     &mut builder,
-                    &CompiledInstructionArgs {
-                        program_id_index: instruction.program_id_index,
-                        accounts,
-                        data,
-                    },
-                ))
-            }
-
-            let account_keys = legacy_message
-                .account_keys
-                .iter()
-                .map(|key| make_pubkey(&mut builder, key))
-                .collect::<Vec<_>>();
-            let account_keys = Some(builder.create_vector(account_keys.as_ref()));
-            let recent_blockhash =
-                Some(builder.create_vector(legacy_message.recent_blockhash.as_ref()));
-            let instructions = Some(builder.create_vector(compiled_instructions.as_ref()));
-            LegacyMessage::create(
-                &mut builder,
-                &LegacyMessageArgs {
-                    header,
-                    account_keys,
-                    recent_blockhash,
-                    instructions,
-                },
-            )
-            .as_union_value()
-        }
-        solana_sdk::message::SanitizedMessage::V0(loaded_message_v0) => {
-            let mut address_table_lookups =
-                Vec::with_capacity(loaded_message_v0.message.address_table_lookups.len());
-            for message_address_table_lookup in &loaded_message_v0.message.address_table_lookups {
-                let writable_indexes = Some(
-                    builder.create_vector(message_address_table_lookup.writable_indexes.as_ref()),
+                    &LoadedAddressesArgs { writable, readonly },
                 );
-                let readonly_indexes = Some(
-                    builder.create_vector(message_address_table_lookup.readonly_indexes.as_ref()),
-                );
-                let account_key = Some(make_pubkey(
-                    &mut builder,
-                    &message_address_table_lookup.account_key,
-                ));
-                address_table_lookups.push(MessageAddressTableLookup::create(
-                    &mut builder,
-                    &MessageAddressTableLookupArgs {
-                        account_key,
-                        writable_indexes,
-                        readonly_indexes,
-                    },
-                ));
-            }
 
-            let mut compiled_instructions =
-                Vec::with_capacity(loaded_message_v0.message.instructions.len());
-
-            for instruction in &loaded_message_v0.message.instructions {
-                let accounts = Some(builder.create_vector(instruction.accounts.as_ref()));
-                let data = Some(builder.create_vector(instruction.data.as_ref()));
-                compiled_instructions.push(CompiledInstruction::create(
-                    &mut builder,
-                    &CompiledInstructionArgs {
-                        program_id_index: instruction.program_id_index,
-                        accounts,
-                        data,
-                    },
-                ))
-            }
-
-            let header = Some(MessageHeader::create(
-                &mut builder,
-                &MessageHeaderArgs {
-                    num_required_signatures: loaded_message_v0
-                        .message
-                        .header
-                        .num_required_signatures,
-                    num_readonly_signed_accounts: loaded_message_v0
-                        .message
-                        .header
-                        .num_readonly_signed_accounts,
-                    num_readonly_unsigned_accounts: loaded_message_v0
-                        .message
-                        .header
-                        .num_readonly_unsigned_accounts,
-                },
-            ));
-
-            let instructions = Some(builder.create_vector(compiled_instructions.as_ref()));
-            let account_keys = loaded_message_v0
-                .message
-                .account_keys
-                .iter()
-                .map(|key| make_pubkey(&mut builder, key))
-                .collect::<Vec<_>>();
-            let account_keys = Some(builder.create_vector(account_keys.as_ref()));
-            let address_table_lookups = Some(builder.create_vector(address_table_lookups.as_ref()));
-            let recent_blockhash =
-                Some(builder.create_vector(loaded_message_v0.message.recent_blockhash.as_ref()));
-            let message_v0 = MessageV0::create(
-                &mut builder,
-                &MessageV0Args {
-                    header,
-                    account_keys,
-                    recent_blockhash,
-                    instructions,
-                    address_table_lookups,
-                },
-            );
-
-            let writable = loaded_message_v0
-                .loaded_addresses
-                .writable
-                .iter()
-                .map(|key| make_pubkey(&mut builder, key))
-                .collect::<Vec<_>>();
-            let writable = Some(builder.create_vector(writable.as_ref()));
-
-            let readonly = loaded_message_v0
-                .loaded_addresses
-                .readonly
-                .iter()
-                .map(|key| make_pubkey(&mut builder, key))
-                .collect::<Vec<_>>();
-            let readonly = Some(builder.create_vector(readonly.as_ref()));
-
-            let loaded_addresses =
-                LoadedAddresses::create(&mut builder, &LoadedAddressesArgs { writable, readonly });
-
-            LoadedMessageV0::create(
-                &mut builder,
-                &LoadedMessageV0Args {
-                    message: Some(message_v0),
-                    loaded_addresses: Some(loaded_addresses),
-                },
-            )
-            .as_union_value()
-        }
-    });
-
-    let message_type = match transaction.transaction.message() {
-        solana_sdk::message::SanitizedMessage::Legacy(_) => SanitizedMessage::Legacy,
-        solana_sdk::message::SanitizedMessage::V0(_) => SanitizedMessage::V0,
+                Some(loaded_addresses)
+            },
+        ),
     };
-
-    let message_hash = Some(builder.create_vector(transaction.transaction.message_hash().as_ref()));
-    let signatures = transaction
-        .transaction
-        .signatures()
-        .iter()
-        .map(|signature| make_signature(&mut builder, signature))
-        .collect::<Vec<_>>();
-    let signatures = Some(builder.create_vector(signatures.as_ref()));
-    let sanitized_transaction = Some(SanitizedTransaction::create(
-        &mut builder,
-        &SanitizedTransactionArgs {
-            message_type,
-            message,
-            message_hash,
-            is_simple_vote_tx: transaction.transaction.is_simple_vote_transaction(),
-            signatures,
-        },
-    ));
+    let tx = solana_sdk::transaction::VersionedTransaction {
+        signatures,
+        message,
+    };
+    let tx = bincode::serialize(&tx).unwrap();
 
     let inner_instructions =
         if let Some(inner_instructions) = &transaction.transaction_meta.inner_instructions {
@@ -1460,14 +1315,16 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
     ));
 
     let signature = Some(make_signature(&mut builder, &transaction.signature));
+    let tx = Some(builder.create_vector(&tx));
     let transaction_info = TransactionInfo::create(
         &mut builder,
         &TransactionInfoArgs {
             signature,
             is_vote: transaction.is_vote,
             slot: transaction.slot,
-            transaction: sanitized_transaction,
+            transaction: tx,
             transaction_meta,
+            loaded_addresses,
         },
     );
     builder.finish(transaction_info, None);
