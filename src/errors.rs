@@ -4,4 +4,7 @@ use thiserror::Error;
 pub enum GeyserError {
     #[error("zmq send error")]
     ZmqSend,
+
+    #[error("tx serialization error")]
+    TxSerializeError,
 }

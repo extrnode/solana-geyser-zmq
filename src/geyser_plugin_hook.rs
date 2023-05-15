@@ -47,6 +47,9 @@ impl GeyserPluginHook {
                             GeyserError::ZmqSend => {
                                 inner.metrics.send_errs.fetch_add(1, Ordering::Relaxed);
                             }
+                            GeyserError::TxSerializeError => {
+                                inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
+                            }
                         }
 
                         Ok(())
@@ -210,7 +213,7 @@ impl GeyserPlugin for GeyserPluginHook {
                             slot,
                             transaction: tx.transaction.clone(),
                             transaction_meta: tx.transaction_status_meta.clone(),
-                        });
+                        })?;
 
                         inner
                             .socket

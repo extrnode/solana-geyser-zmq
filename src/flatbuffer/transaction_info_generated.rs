@@ -7,109 +7,12 @@ extern crate flatbuffers;
 #[allow(unused_imports, dead_code)]
 pub mod transaction_info {
 
-    use crate::flatbuffer::common_generated::common::{Pubkey, Reward, Signature};
+    use crate::flatbuffer::common_generated::common::*;
     use core::cmp::Ordering;
     use core::mem;
 
     extern crate flatbuffers;
     use self::flatbuffers::{EndianScalar, Follow};
-
-    #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
-    )]
-    pub const ENUM_MIN_SANITIZED_MESSAGE: u8 = 0;
-    #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
-    )]
-    pub const ENUM_MAX_SANITIZED_MESSAGE: u8 = 2;
-    #[deprecated(
-        since = "2.0.0",
-        note = "Use associated constants instead. This will no longer be generated in 2021."
-    )]
-    #[allow(non_camel_case_types)]
-    pub const ENUM_VALUES_SANITIZED_MESSAGE: [SanitizedMessage; 3] = [
-        SanitizedMessage::NONE,
-        SanitizedMessage::Legacy,
-        SanitizedMessage::V0,
-    ];
-
-    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-    #[repr(transparent)]
-    pub struct SanitizedMessage(pub u8);
-    #[allow(non_upper_case_globals)]
-    impl SanitizedMessage {
-        pub const NONE: Self = Self(0);
-        pub const Legacy: Self = Self(1);
-        pub const V0: Self = Self(2);
-
-        pub const ENUM_MIN: u8 = 0;
-        pub const ENUM_MAX: u8 = 2;
-        pub const ENUM_VALUES: &'static [Self] = &[Self::NONE, Self::Legacy, Self::V0];
-        /// Returns the variant's name or "" if unknown.
-        pub fn variant_name(self) -> Option<&'static str> {
-            match self {
-                Self::NONE => Some("NONE"),
-                Self::Legacy => Some("Legacy"),
-                Self::V0 => Some("V0"),
-                _ => None,
-            }
-        }
-    }
-    impl core::fmt::Debug for SanitizedMessage {
-        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-            if let Some(name) = self.variant_name() {
-                f.write_str(name)
-            } else {
-                f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
-            }
-        }
-    }
-    impl<'a> flatbuffers::Follow<'a> for SanitizedMessage {
-        type Inner = Self;
-        #[inline]
-        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-            let b = flatbuffers::read_scalar_at::<u8>(buf, loc);
-            Self(b)
-        }
-    }
-
-    impl flatbuffers::Push for SanitizedMessage {
-        type Output = SanitizedMessage;
-        #[inline]
-        unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
-            flatbuffers::emplace_scalar::<u8>(dst, self.0);
-        }
-    }
-
-    impl flatbuffers::EndianScalar for SanitizedMessage {
-        type Scalar = u8;
-        #[inline]
-        fn to_little_endian(self) -> u8 {
-            self.0.to_le()
-        }
-        #[inline]
-        #[allow(clippy::wrong_self_convention)]
-        fn from_little_endian(v: u8) -> Self {
-            let b = u8::from_le(v);
-            Self(b)
-        }
-    }
-
-    impl<'a> flatbuffers::Verifiable for SanitizedMessage {
-        #[inline]
-        fn run_verifier(
-            v: &mut flatbuffers::Verifier,
-            pos: usize,
-        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-            use self::flatbuffers::Verifiable;
-            u8::run_verifier(v, pos)
-        }
-    }
-
-    impl flatbuffers::SimpleToVerifyInSlice for SanitizedMessage {}
-    pub struct SanitizedMessageUnionTableOffset {}
 
     #[deprecated(
         since = "2.0.0",
@@ -839,6 +742,7 @@ pub mod transaction_info {
         pub const VT_SLOT: flatbuffers::VOffsetT = 8;
         pub const VT_TRANSACTION: flatbuffers::VOffsetT = 10;
         pub const VT_TRANSACTION_META: flatbuffers::VOffsetT = 12;
+        pub const VT_LOADED_ADDRESSES: flatbuffers::VOffsetT = 14;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -851,6 +755,9 @@ pub mod transaction_info {
         ) -> flatbuffers::WIPOffset<TransactionInfo<'bldr>> {
             let mut builder = TransactionInfoBuilder::new(_fbb);
             builder.add_slot(args.slot);
+            if let Some(x) = args.loaded_addresses {
+                builder.add_loaded_addresses(x);
+            }
             if let Some(x) = args.transaction_meta {
                 builder.add_transaction_meta(x);
             }
@@ -899,13 +806,13 @@ pub mod transaction_info {
             }
         }
         #[inline]
-        pub fn transaction(&self) -> Option<SanitizedTransaction<'a>> {
+        pub fn transaction(&self) -> Option<flatbuffers::Vector<'a, u8>> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab
-                    .get::<flatbuffers::ForwardsUOffset<SanitizedTransaction>>(
+                    .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(
                         TransactionInfo::VT_TRANSACTION,
                         None,
                     )
@@ -920,6 +827,19 @@ pub mod transaction_info {
                 self._tab
                     .get::<flatbuffers::ForwardsUOffset<TransactionStatusMeta>>(
                         TransactionInfo::VT_TRANSACTION_META,
+                        None,
+                    )
+            }
+        }
+        #[inline]
+        pub fn loaded_addresses(&self) -> Option<LoadedAddresses<'a>> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<LoadedAddresses>>(
+                        TransactionInfo::VT_LOADED_ADDRESSES,
                         None,
                     )
             }
@@ -941,7 +861,7 @@ pub mod transaction_info {
                 )?
                 .visit_field::<bool>("is_vote", Self::VT_IS_VOTE, false)?
                 .visit_field::<u64>("slot", Self::VT_SLOT, false)?
-                .visit_field::<flatbuffers::ForwardsUOffset<SanitizedTransaction>>(
+                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
                     "transaction",
                     Self::VT_TRANSACTION,
                     false,
@@ -949,6 +869,11 @@ pub mod transaction_info {
                 .visit_field::<flatbuffers::ForwardsUOffset<TransactionStatusMeta>>(
                     "transaction_meta",
                     Self::VT_TRANSACTION_META,
+                    false,
+                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<LoadedAddresses>>(
+                    "loaded_addresses",
+                    Self::VT_LOADED_ADDRESSES,
                     false,
                 )?
                 .finish();
@@ -959,8 +884,9 @@ pub mod transaction_info {
         pub signature: Option<flatbuffers::WIPOffset<Signature<'a>>>,
         pub is_vote: bool,
         pub slot: u64,
-        pub transaction: Option<flatbuffers::WIPOffset<SanitizedTransaction<'a>>>,
+        pub transaction: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
         pub transaction_meta: Option<flatbuffers::WIPOffset<TransactionStatusMeta<'a>>>,
+        pub loaded_addresses: Option<flatbuffers::WIPOffset<LoadedAddresses<'a>>>,
     }
     impl<'a> Default for TransactionInfoArgs<'a> {
         #[inline]
@@ -971,6 +897,7 @@ pub mod transaction_info {
                 slot: 0,
                 transaction: None,
                 transaction_meta: None,
+                loaded_addresses: None,
             }
         }
     }
@@ -1001,13 +928,12 @@ pub mod transaction_info {
         #[inline]
         pub fn add_transaction(
             &mut self,
-            transaction: flatbuffers::WIPOffset<SanitizedTransaction<'b>>,
+            transaction: flatbuffers::WIPOffset<flatbuffers::Vector<'b, u8>>,
         ) {
-            self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<SanitizedTransaction>>(
-                    TransactionInfo::VT_TRANSACTION,
-                    transaction,
-                );
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionInfo::VT_TRANSACTION,
+                transaction,
+            );
         }
         #[inline]
         pub fn add_transaction_meta(
@@ -1018,6 +944,17 @@ pub mod transaction_info {
                 .push_slot_always::<flatbuffers::WIPOffset<TransactionStatusMeta>>(
                     TransactionInfo::VT_TRANSACTION_META,
                     transaction_meta,
+                );
+        }
+        #[inline]
+        pub fn add_loaded_addresses(
+            &mut self,
+            loaded_addresses: flatbuffers::WIPOffset<LoadedAddresses<'b>>,
+        ) {
+            self.fbb_
+                .push_slot_always::<flatbuffers::WIPOffset<LoadedAddresses>>(
+                    TransactionInfo::VT_LOADED_ADDRESSES,
+                    loaded_addresses,
                 );
         }
         #[inline]
@@ -1045,18 +982,19 @@ pub mod transaction_info {
             ds.field("slot", &self.slot());
             ds.field("transaction", &self.transaction());
             ds.field("transaction_meta", &self.transaction_meta());
+            ds.field("loaded_addresses", &self.loaded_addresses());
             ds.finish()
         }
     }
-    pub enum SanitizedTransactionOffset {}
+    pub enum LoadedAddressesOffset {}
     #[derive(Copy, Clone, PartialEq)]
 
-    pub struct SanitizedTransaction<'a> {
+    pub struct LoadedAddresses<'a> {
         pub _tab: flatbuffers::Table<'a>,
     }
 
-    impl<'a> flatbuffers::Follow<'a> for SanitizedTransaction<'a> {
-        type Inner = SanitizedTransaction<'a>;
+    impl<'a> flatbuffers::Follow<'a> for LoadedAddresses<'a> {
+        type Inner = LoadedAddresses<'a>;
         #[inline]
         unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
             Self {
@@ -1065,366 +1003,31 @@ pub mod transaction_info {
         }
     }
 
-    impl<'a> SanitizedTransaction<'a> {
-        pub const VT_MESSAGE_TYPE: flatbuffers::VOffsetT = 4;
-        pub const VT_MESSAGE: flatbuffers::VOffsetT = 6;
-        pub const VT_MESSAGE_HASH: flatbuffers::VOffsetT = 8;
-        pub const VT_IS_SIMPLE_VOTE_TX: flatbuffers::VOffsetT = 10;
-        pub const VT_SIGNATURES: flatbuffers::VOffsetT = 12;
+    impl<'a> LoadedAddresses<'a> {
+        pub const VT_WRITABLE: flatbuffers::VOffsetT = 4;
+        pub const VT_READONLY: flatbuffers::VOffsetT = 6;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-            SanitizedTransaction { _tab: table }
+            LoadedAddresses { _tab: table }
         }
         #[allow(unused_mut)]
         pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
             _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-            args: &'args SanitizedTransactionArgs<'args>,
-        ) -> flatbuffers::WIPOffset<SanitizedTransaction<'bldr>> {
-            let mut builder = SanitizedTransactionBuilder::new(_fbb);
-            if let Some(x) = args.signatures {
-                builder.add_signatures(x);
+            args: &'args LoadedAddressesArgs<'args>,
+        ) -> flatbuffers::WIPOffset<LoadedAddresses<'bldr>> {
+            let mut builder = LoadedAddressesBuilder::new(_fbb);
+            if let Some(x) = args.readonly {
+                builder.add_readonly(x);
             }
-            if let Some(x) = args.message_hash {
-                builder.add_message_hash(x);
-            }
-            if let Some(x) = args.message {
-                builder.add_message(x);
-            }
-            builder.add_is_simple_vote_tx(args.is_simple_vote_tx);
-            builder.add_message_type(args.message_type);
-            builder.finish()
-        }
-
-        #[inline]
-        pub fn message_type(&self) -> SanitizedMessage {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<SanitizedMessage>(
-                        SanitizedTransaction::VT_MESSAGE_TYPE,
-                        Some(SanitizedMessage::NONE),
-                    )
-                    .unwrap()
-            }
-        }
-        #[inline]
-        pub fn message(&self) -> Option<flatbuffers::Table<'a>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<flatbuffers::Table<'a>>>(
-                        SanitizedTransaction::VT_MESSAGE,
-                        None,
-                    )
-            }
-        }
-        #[inline]
-        pub fn message_hash(&self) -> Option<flatbuffers::Vector<'a, u8>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(
-                        SanitizedTransaction::VT_MESSAGE_HASH,
-                        None,
-                    )
-            }
-        }
-        #[inline]
-        pub fn is_simple_vote_tx(&self) -> bool {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<bool>(SanitizedTransaction::VT_IS_SIMPLE_VOTE_TX, Some(false))
-                    .unwrap()
-            }
-        }
-        #[inline]
-        pub fn signatures(
-            &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Signature<'a>>>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Signature>>,
-                >>(SanitizedTransaction::VT_SIGNATURES, None)
-            }
-        }
-        #[inline]
-        #[allow(non_snake_case)]
-        pub fn message_as_legacy(&self) -> Option<LegacyMessage<'a>> {
-            if self.message_type() == SanitizedMessage::Legacy {
-                self.message().map(|t| {
-                    // Safety:
-                    // Created from a valid Table for this object
-                    // Which contains a valid union in this slot
-                    unsafe { LegacyMessage::init_from_table(t) }
-                })
-            } else {
-                None
-            }
-        }
-
-        #[inline]
-        #[allow(non_snake_case)]
-        pub fn message_as_v0(&self) -> Option<LoadedMessageV0<'a>> {
-            if self.message_type() == SanitizedMessage::V0 {
-                self.message().map(|t| {
-                    // Safety:
-                    // Created from a valid Table for this object
-                    // Which contains a valid union in this slot
-                    unsafe { LoadedMessageV0::init_from_table(t) }
-                })
-            } else {
-                None
-            }
-        }
-    }
-
-    impl flatbuffers::Verifiable for SanitizedTransaction<'_> {
-        #[inline]
-        fn run_verifier(
-            v: &mut flatbuffers::Verifier,
-            pos: usize,
-        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-            use self::flatbuffers::Verifiable;
-            v.visit_table(pos)?
-                .visit_union::<SanitizedMessage, _>(
-                    "message_type",
-                    Self::VT_MESSAGE_TYPE,
-                    "message",
-                    Self::VT_MESSAGE,
-                    false,
-                    |key, v, pos| match key {
-                        SanitizedMessage::Legacy => v
-                            .verify_union_variant::<flatbuffers::ForwardsUOffset<LegacyMessage>>(
-                                "SanitizedMessage::Legacy",
-                                pos,
-                            ),
-                        SanitizedMessage::V0 => v
-                            .verify_union_variant::<flatbuffers::ForwardsUOffset<LoadedMessageV0>>(
-                                "SanitizedMessage::V0",
-                                pos,
-                            ),
-                        _ => Ok(()),
-                    },
-                )?
-                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
-                    "message_hash",
-                    Self::VT_MESSAGE_HASH,
-                    false,
-                )?
-                .visit_field::<bool>("is_simple_vote_tx", Self::VT_IS_SIMPLE_VOTE_TX, false)?
-                .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Signature>>,
-                >>("signatures", Self::VT_SIGNATURES, false)?
-                .finish();
-            Ok(())
-        }
-    }
-    pub struct SanitizedTransactionArgs<'a> {
-        pub message_type: SanitizedMessage,
-        pub message: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
-        pub message_hash: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-        pub is_simple_vote_tx: bool,
-        pub signatures: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Signature<'a>>>,
-            >,
-        >,
-    }
-    impl<'a> Default for SanitizedTransactionArgs<'a> {
-        #[inline]
-        fn default() -> Self {
-            SanitizedTransactionArgs {
-                message_type: SanitizedMessage::NONE,
-                message: None,
-                message_hash: None,
-                is_simple_vote_tx: false,
-                signatures: None,
-            }
-        }
-    }
-
-    pub struct SanitizedTransactionBuilder<'a: 'b, 'b> {
-        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-    }
-    impl<'a: 'b, 'b> SanitizedTransactionBuilder<'a, 'b> {
-        #[inline]
-        pub fn add_message_type(&mut self, message_type: SanitizedMessage) {
-            self.fbb_.push_slot::<SanitizedMessage>(
-                SanitizedTransaction::VT_MESSAGE_TYPE,
-                message_type,
-                SanitizedMessage::NONE,
-            );
-        }
-        #[inline]
-        pub fn add_message(
-            &mut self,
-            message: flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                SanitizedTransaction::VT_MESSAGE,
-                message,
-            );
-        }
-        #[inline]
-        pub fn add_message_hash(
-            &mut self,
-            message_hash: flatbuffers::WIPOffset<flatbuffers::Vector<'b, u8>>,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                SanitizedTransaction::VT_MESSAGE_HASH,
-                message_hash,
-            );
-        }
-        #[inline]
-        pub fn add_is_simple_vote_tx(&mut self, is_simple_vote_tx: bool) {
-            self.fbb_.push_slot::<bool>(
-                SanitizedTransaction::VT_IS_SIMPLE_VOTE_TX,
-                is_simple_vote_tx,
-                false,
-            );
-        }
-        #[inline]
-        pub fn add_signatures(
-            &mut self,
-            signatures: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Signature<'b>>>,
-            >,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                SanitizedTransaction::VT_SIGNATURES,
-                signatures,
-            );
-        }
-        #[inline]
-        pub fn new(
-            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        ) -> SanitizedTransactionBuilder<'a, 'b> {
-            let start = _fbb.start_table();
-            SanitizedTransactionBuilder {
-                fbb_: _fbb,
-                start_: start,
-            }
-        }
-        #[inline]
-        pub fn finish(self) -> flatbuffers::WIPOffset<SanitizedTransaction<'a>> {
-            let o = self.fbb_.end_table(self.start_);
-            flatbuffers::WIPOffset::new(o.value())
-        }
-    }
-
-    impl core::fmt::Debug for SanitizedTransaction<'_> {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            let mut ds = f.debug_struct("SanitizedTransaction");
-            ds.field("message_type", &self.message_type());
-            match self.message_type() {
-                SanitizedMessage::Legacy => {
-                    if let Some(x) = self.message_as_legacy() {
-                        ds.field("message", &x)
-                    } else {
-                        ds.field(
-                            "message",
-                            &"InvalidFlatbuffer: Union discriminant does not match value.",
-                        )
-                    }
-                }
-                SanitizedMessage::V0 => {
-                    if let Some(x) = self.message_as_v0() {
-                        ds.field("message", &x)
-                    } else {
-                        ds.field(
-                            "message",
-                            &"InvalidFlatbuffer: Union discriminant does not match value.",
-                        )
-                    }
-                }
-                _ => {
-                    let x: Option<()> = None;
-                    ds.field("message", &x)
-                }
-            };
-            ds.field("message_hash", &self.message_hash());
-            ds.field("is_simple_vote_tx", &self.is_simple_vote_tx());
-            ds.field("signatures", &self.signatures());
-            ds.finish()
-        }
-    }
-    pub enum LegacyMessageOffset {}
-    #[derive(Copy, Clone, PartialEq)]
-
-    pub struct LegacyMessage<'a> {
-        pub _tab: flatbuffers::Table<'a>,
-    }
-
-    impl<'a> flatbuffers::Follow<'a> for LegacyMessage<'a> {
-        type Inner = LegacyMessage<'a>;
-        #[inline]
-        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-            Self {
-                _tab: flatbuffers::Table::new(buf, loc),
-            }
-        }
-    }
-
-    impl<'a> LegacyMessage<'a> {
-        pub const VT_HEADER: flatbuffers::VOffsetT = 4;
-        pub const VT_ACCOUNT_KEYS: flatbuffers::VOffsetT = 6;
-        pub const VT_RECENT_BLOCKHASH: flatbuffers::VOffsetT = 8;
-        pub const VT_INSTRUCTIONS: flatbuffers::VOffsetT = 10;
-
-        #[inline]
-        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-            LegacyMessage { _tab: table }
-        }
-        #[allow(unused_mut)]
-        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-            args: &'args LegacyMessageArgs<'args>,
-        ) -> flatbuffers::WIPOffset<LegacyMessage<'bldr>> {
-            let mut builder = LegacyMessageBuilder::new(_fbb);
-            if let Some(x) = args.instructions {
-                builder.add_instructions(x);
-            }
-            if let Some(x) = args.recent_blockhash {
-                builder.add_recent_blockhash(x);
-            }
-            if let Some(x) = args.account_keys {
-                builder.add_account_keys(x);
-            }
-            if let Some(x) = args.header {
-                builder.add_header(x);
+            if let Some(x) = args.writable {
+                builder.add_writable(x);
             }
             builder.finish()
         }
 
         #[inline]
-        pub fn header(&self) -> Option<MessageHeader<'a>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<MessageHeader>>(
-                        LegacyMessage::VT_HEADER,
-                        None,
-                    )
-            }
-        }
-        #[inline]
-        pub fn account_keys(
+        pub fn writable(
             &self,
         ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
             // Safety:
@@ -1433,39 +1036,25 @@ pub mod transaction_info {
             unsafe {
                 self._tab.get::<flatbuffers::ForwardsUOffset<
                     flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
-                >>(LegacyMessage::VT_ACCOUNT_KEYS, None)
+                >>(LoadedAddresses::VT_WRITABLE, None)
             }
         }
         #[inline]
-        pub fn recent_blockhash(&self) -> Option<flatbuffers::Vector<'a, u8>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(
-                        LegacyMessage::VT_RECENT_BLOCKHASH,
-                        None,
-                    )
-            }
-        }
-        #[inline]
-        pub fn instructions(
+        pub fn readonly(
             &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CompiledInstruction<'a>>>>
-        {
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CompiledInstruction>>,
-                >>(LegacyMessage::VT_INSTRUCTIONS, None)
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
+                >>(LoadedAddresses::VT_READONLY, None)
             }
         }
     }
 
-    impl flatbuffers::Verifiable for LegacyMessage<'_> {
+    impl flatbuffers::Verifiable for LoadedAddresses<'_> {
         #[inline]
         fn run_verifier(
             v: &mut flatbuffers::Verifier,
@@ -1473,300 +1062,89 @@ pub mod transaction_info {
         ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<MessageHeader>>(
-                    "header",
-                    Self::VT_HEADER,
-                    false,
-                )?
                 .visit_field::<flatbuffers::ForwardsUOffset<
                     flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
-                >>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
-                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
-                    "recent_blockhash",
-                    Self::VT_RECENT_BLOCKHASH,
-                    false,
-                )?
+                >>("writable", Self::VT_WRITABLE, false)?
                 .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<CompiledInstruction>>,
-                >>("instructions", Self::VT_INSTRUCTIONS, false)?
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
+                >>("readonly", Self::VT_READONLY, false)?
                 .finish();
             Ok(())
         }
     }
-    pub struct LegacyMessageArgs<'a> {
-        pub header: Option<flatbuffers::WIPOffset<MessageHeader<'a>>>,
-        pub account_keys: Option<
+    pub struct LoadedAddressesArgs<'a> {
+        pub writable: Option<
             flatbuffers::WIPOffset<
                 flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
             >,
         >,
-        pub recent_blockhash: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-        pub instructions: Option<
+        pub readonly: Option<
             flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CompiledInstruction<'a>>>,
+                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
             >,
         >,
     }
-    impl<'a> Default for LegacyMessageArgs<'a> {
+    impl<'a> Default for LoadedAddressesArgs<'a> {
         #[inline]
         fn default() -> Self {
-            LegacyMessageArgs {
-                header: None,
-                account_keys: None,
-                recent_blockhash: None,
-                instructions: None,
+            LoadedAddressesArgs {
+                writable: None,
+                readonly: None,
             }
         }
     }
 
-    pub struct LegacyMessageBuilder<'a: 'b, 'b> {
+    pub struct LoadedAddressesBuilder<'a: 'b, 'b> {
         fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
         start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
     }
-    impl<'a: 'b, 'b> LegacyMessageBuilder<'a, 'b> {
+    impl<'a: 'b, 'b> LoadedAddressesBuilder<'a, 'b> {
         #[inline]
-        pub fn add_header(&mut self, header: flatbuffers::WIPOffset<MessageHeader<'b>>) {
-            self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<MessageHeader>>(
-                    LegacyMessage::VT_HEADER,
-                    header,
-                );
-        }
-        #[inline]
-        pub fn add_account_keys(
+        pub fn add_writable(
             &mut self,
-            account_keys: flatbuffers::WIPOffset<
+            writable: flatbuffers::WIPOffset<
                 flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
             >,
         ) {
             self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                LegacyMessage::VT_ACCOUNT_KEYS,
-                account_keys,
+                LoadedAddresses::VT_WRITABLE,
+                writable,
             );
         }
         #[inline]
-        pub fn add_recent_blockhash(
+        pub fn add_readonly(
             &mut self,
-            recent_blockhash: flatbuffers::WIPOffset<flatbuffers::Vector<'b, u8>>,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                LegacyMessage::VT_RECENT_BLOCKHASH,
-                recent_blockhash,
-            );
-        }
-        #[inline]
-        pub fn add_instructions(
-            &mut self,
-            instructions: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<CompiledInstruction<'b>>>,
+            readonly: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
             >,
         ) {
             self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                LegacyMessage::VT_INSTRUCTIONS,
-                instructions,
+                LoadedAddresses::VT_READONLY,
+                readonly,
             );
         }
         #[inline]
         pub fn new(
             _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        ) -> LegacyMessageBuilder<'a, 'b> {
+        ) -> LoadedAddressesBuilder<'a, 'b> {
             let start = _fbb.start_table();
-            LegacyMessageBuilder {
+            LoadedAddressesBuilder {
                 fbb_: _fbb,
                 start_: start,
             }
         }
         #[inline]
-        pub fn finish(self) -> flatbuffers::WIPOffset<LegacyMessage<'a>> {
+        pub fn finish(self) -> flatbuffers::WIPOffset<LoadedAddresses<'a>> {
             let o = self.fbb_.end_table(self.start_);
             flatbuffers::WIPOffset::new(o.value())
         }
     }
 
-    impl core::fmt::Debug for LegacyMessage<'_> {
+    impl core::fmt::Debug for LoadedAddresses<'_> {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            let mut ds = f.debug_struct("LegacyMessage");
-            ds.field("header", &self.header());
-            ds.field("account_keys", &self.account_keys());
-            ds.field("recent_blockhash", &self.recent_blockhash());
-            ds.field("instructions", &self.instructions());
-            ds.finish()
-        }
-    }
-    pub enum MessageHeaderOffset {}
-    #[derive(Copy, Clone, PartialEq)]
-
-    pub struct MessageHeader<'a> {
-        pub _tab: flatbuffers::Table<'a>,
-    }
-
-    impl<'a> flatbuffers::Follow<'a> for MessageHeader<'a> {
-        type Inner = MessageHeader<'a>;
-        #[inline]
-        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-            Self {
-                _tab: flatbuffers::Table::new(buf, loc),
-            }
-        }
-    }
-
-    impl<'a> MessageHeader<'a> {
-        pub const VT_NUM_REQUIRED_SIGNATURES: flatbuffers::VOffsetT = 4;
-        pub const VT_NUM_READONLY_SIGNED_ACCOUNTS: flatbuffers::VOffsetT = 6;
-        pub const VT_NUM_READONLY_UNSIGNED_ACCOUNTS: flatbuffers::VOffsetT = 8;
-
-        #[inline]
-        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-            MessageHeader { _tab: table }
-        }
-        #[allow(unused_mut)]
-        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-            args: &'args MessageHeaderArgs,
-        ) -> flatbuffers::WIPOffset<MessageHeader<'bldr>> {
-            let mut builder = MessageHeaderBuilder::new(_fbb);
-            builder.add_num_readonly_unsigned_accounts(args.num_readonly_unsigned_accounts);
-            builder.add_num_readonly_signed_accounts(args.num_readonly_signed_accounts);
-            builder.add_num_required_signatures(args.num_required_signatures);
-            builder.finish()
-        }
-
-        #[inline]
-        pub fn num_required_signatures(&self) -> u8 {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<u8>(MessageHeader::VT_NUM_REQUIRED_SIGNATURES, Some(0))
-                    .unwrap()
-            }
-        }
-        #[inline]
-        pub fn num_readonly_signed_accounts(&self) -> u8 {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<u8>(MessageHeader::VT_NUM_READONLY_SIGNED_ACCOUNTS, Some(0))
-                    .unwrap()
-            }
-        }
-        #[inline]
-        pub fn num_readonly_unsigned_accounts(&self) -> u8 {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<u8>(MessageHeader::VT_NUM_READONLY_UNSIGNED_ACCOUNTS, Some(0))
-                    .unwrap()
-            }
-        }
-    }
-
-    impl flatbuffers::Verifiable for MessageHeader<'_> {
-        #[inline]
-        fn run_verifier(
-            v: &mut flatbuffers::Verifier,
-            pos: usize,
-        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-            use self::flatbuffers::Verifiable;
-            v.visit_table(pos)?
-                .visit_field::<u8>(
-                    "num_required_signatures",
-                    Self::VT_NUM_REQUIRED_SIGNATURES,
-                    false,
-                )?
-                .visit_field::<u8>(
-                    "num_readonly_signed_accounts",
-                    Self::VT_NUM_READONLY_SIGNED_ACCOUNTS,
-                    false,
-                )?
-                .visit_field::<u8>(
-                    "num_readonly_unsigned_accounts",
-                    Self::VT_NUM_READONLY_UNSIGNED_ACCOUNTS,
-                    false,
-                )?
-                .finish();
-            Ok(())
-        }
-    }
-    pub struct MessageHeaderArgs {
-        pub num_required_signatures: u8,
-        pub num_readonly_signed_accounts: u8,
-        pub num_readonly_unsigned_accounts: u8,
-    }
-    impl<'a> Default for MessageHeaderArgs {
-        #[inline]
-        fn default() -> Self {
-            MessageHeaderArgs {
-                num_required_signatures: 0,
-                num_readonly_signed_accounts: 0,
-                num_readonly_unsigned_accounts: 0,
-            }
-        }
-    }
-
-    pub struct MessageHeaderBuilder<'a: 'b, 'b> {
-        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-    }
-    impl<'a: 'b, 'b> MessageHeaderBuilder<'a, 'b> {
-        #[inline]
-        pub fn add_num_required_signatures(&mut self, num_required_signatures: u8) {
-            self.fbb_.push_slot::<u8>(
-                MessageHeader::VT_NUM_REQUIRED_SIGNATURES,
-                num_required_signatures,
-                0,
-            );
-        }
-        #[inline]
-        pub fn add_num_readonly_signed_accounts(&mut self, num_readonly_signed_accounts: u8) {
-            self.fbb_.push_slot::<u8>(
-                MessageHeader::VT_NUM_READONLY_SIGNED_ACCOUNTS,
-                num_readonly_signed_accounts,
-                0,
-            );
-        }
-        #[inline]
-        pub fn add_num_readonly_unsigned_accounts(&mut self, num_readonly_unsigned_accounts: u8) {
-            self.fbb_.push_slot::<u8>(
-                MessageHeader::VT_NUM_READONLY_UNSIGNED_ACCOUNTS,
-                num_readonly_unsigned_accounts,
-                0,
-            );
-        }
-        #[inline]
-        pub fn new(
-            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        ) -> MessageHeaderBuilder<'a, 'b> {
-            let start = _fbb.start_table();
-            MessageHeaderBuilder {
-                fbb_: _fbb,
-                start_: start,
-            }
-        }
-        #[inline]
-        pub fn finish(self) -> flatbuffers::WIPOffset<MessageHeader<'a>> {
-            let o = self.fbb_.end_table(self.start_);
-            flatbuffers::WIPOffset::new(o.value())
-        }
-    }
-
-    impl core::fmt::Debug for MessageHeader<'_> {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            let mut ds = f.debug_struct("MessageHeader");
-            ds.field("num_required_signatures", &self.num_required_signatures());
-            ds.field(
-                "num_readonly_signed_accounts",
-                &self.num_readonly_signed_accounts(),
-            );
-            ds.field(
-                "num_readonly_unsigned_accounts",
-                &self.num_readonly_unsigned_accounts(),
-            );
+            let mut ds = f.debug_struct("LoadedAddresses");
+            ds.field("writable", &self.writable());
+            ds.field("readonly", &self.readonly());
             ds.finish()
         }
     }
@@ -1941,789 +1319,6 @@ pub mod transaction_info {
             ds.field("program_id_index", &self.program_id_index());
             ds.field("accounts", &self.accounts());
             ds.field("data", &self.data());
-            ds.finish()
-        }
-    }
-    pub enum LoadedMessageV0Offset {}
-    #[derive(Copy, Clone, PartialEq)]
-
-    pub struct LoadedMessageV0<'a> {
-        pub _tab: flatbuffers::Table<'a>,
-    }
-
-    impl<'a> flatbuffers::Follow<'a> for LoadedMessageV0<'a> {
-        type Inner = LoadedMessageV0<'a>;
-        #[inline]
-        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-            Self {
-                _tab: flatbuffers::Table::new(buf, loc),
-            }
-        }
-    }
-
-    impl<'a> LoadedMessageV0<'a> {
-        pub const VT_MESSAGE: flatbuffers::VOffsetT = 4;
-        pub const VT_LOADED_ADDRESSES: flatbuffers::VOffsetT = 6;
-
-        #[inline]
-        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-            LoadedMessageV0 { _tab: table }
-        }
-        #[allow(unused_mut)]
-        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-            args: &'args LoadedMessageV0Args<'args>,
-        ) -> flatbuffers::WIPOffset<LoadedMessageV0<'bldr>> {
-            let mut builder = LoadedMessageV0Builder::new(_fbb);
-            if let Some(x) = args.loaded_addresses {
-                builder.add_loaded_addresses(x);
-            }
-            if let Some(x) = args.message {
-                builder.add_message(x);
-            }
-            builder.finish()
-        }
-
-        #[inline]
-        pub fn message(&self) -> Option<MessageV0<'a>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<MessageV0>>(
-                    LoadedMessageV0::VT_MESSAGE,
-                    None,
-                )
-            }
-        }
-        #[inline]
-        pub fn loaded_addresses(&self) -> Option<LoadedAddresses<'a>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<LoadedAddresses>>(
-                        LoadedMessageV0::VT_LOADED_ADDRESSES,
-                        None,
-                    )
-            }
-        }
-    }
-
-    impl flatbuffers::Verifiable for LoadedMessageV0<'_> {
-        #[inline]
-        fn run_verifier(
-            v: &mut flatbuffers::Verifier,
-            pos: usize,
-        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-            use self::flatbuffers::Verifiable;
-            v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<MessageV0>>(
-                    "message",
-                    Self::VT_MESSAGE,
-                    false,
-                )?
-                .visit_field::<flatbuffers::ForwardsUOffset<LoadedAddresses>>(
-                    "loaded_addresses",
-                    Self::VT_LOADED_ADDRESSES,
-                    false,
-                )?
-                .finish();
-            Ok(())
-        }
-    }
-    pub struct LoadedMessageV0Args<'a> {
-        pub message: Option<flatbuffers::WIPOffset<MessageV0<'a>>>,
-        pub loaded_addresses: Option<flatbuffers::WIPOffset<LoadedAddresses<'a>>>,
-    }
-    impl<'a> Default for LoadedMessageV0Args<'a> {
-        #[inline]
-        fn default() -> Self {
-            LoadedMessageV0Args {
-                message: None,
-                loaded_addresses: None,
-            }
-        }
-    }
-
-    pub struct LoadedMessageV0Builder<'a: 'b, 'b> {
-        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-    }
-    impl<'a: 'b, 'b> LoadedMessageV0Builder<'a, 'b> {
-        #[inline]
-        pub fn add_message(&mut self, message: flatbuffers::WIPOffset<MessageV0<'b>>) {
-            self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<MessageV0>>(
-                    LoadedMessageV0::VT_MESSAGE,
-                    message,
-                );
-        }
-        #[inline]
-        pub fn add_loaded_addresses(
-            &mut self,
-            loaded_addresses: flatbuffers::WIPOffset<LoadedAddresses<'b>>,
-        ) {
-            self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<LoadedAddresses>>(
-                    LoadedMessageV0::VT_LOADED_ADDRESSES,
-                    loaded_addresses,
-                );
-        }
-        #[inline]
-        pub fn new(
-            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        ) -> LoadedMessageV0Builder<'a, 'b> {
-            let start = _fbb.start_table();
-            LoadedMessageV0Builder {
-                fbb_: _fbb,
-                start_: start,
-            }
-        }
-        #[inline]
-        pub fn finish(self) -> flatbuffers::WIPOffset<LoadedMessageV0<'a>> {
-            let o = self.fbb_.end_table(self.start_);
-            flatbuffers::WIPOffset::new(o.value())
-        }
-    }
-
-    impl core::fmt::Debug for LoadedMessageV0<'_> {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            let mut ds = f.debug_struct("LoadedMessageV0");
-            ds.field("message", &self.message());
-            ds.field("loaded_addresses", &self.loaded_addresses());
-            ds.finish()
-        }
-    }
-    pub enum MessageV0Offset {}
-    #[derive(Copy, Clone, PartialEq)]
-
-    pub struct MessageV0<'a> {
-        pub _tab: flatbuffers::Table<'a>,
-    }
-
-    impl<'a> flatbuffers::Follow<'a> for MessageV0<'a> {
-        type Inner = MessageV0<'a>;
-        #[inline]
-        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-            Self {
-                _tab: flatbuffers::Table::new(buf, loc),
-            }
-        }
-    }
-
-    impl<'a> MessageV0<'a> {
-        pub const VT_HEADER: flatbuffers::VOffsetT = 4;
-        pub const VT_ACCOUNT_KEYS: flatbuffers::VOffsetT = 6;
-        pub const VT_RECENT_BLOCKHASH: flatbuffers::VOffsetT = 8;
-        pub const VT_INSTRUCTIONS: flatbuffers::VOffsetT = 10;
-        pub const VT_ADDRESS_TABLE_LOOKUPS: flatbuffers::VOffsetT = 12;
-
-        #[inline]
-        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-            MessageV0 { _tab: table }
-        }
-        #[allow(unused_mut)]
-        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-            args: &'args MessageV0Args<'args>,
-        ) -> flatbuffers::WIPOffset<MessageV0<'bldr>> {
-            let mut builder = MessageV0Builder::new(_fbb);
-            if let Some(x) = args.address_table_lookups {
-                builder.add_address_table_lookups(x);
-            }
-            if let Some(x) = args.instructions {
-                builder.add_instructions(x);
-            }
-            if let Some(x) = args.recent_blockhash {
-                builder.add_recent_blockhash(x);
-            }
-            if let Some(x) = args.account_keys {
-                builder.add_account_keys(x);
-            }
-            if let Some(x) = args.header {
-                builder.add_header(x);
-            }
-            builder.finish()
-        }
-
-        #[inline]
-        pub fn header(&self) -> Option<MessageHeader<'a>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<MessageHeader>>(MessageV0::VT_HEADER, None)
-            }
-        }
-        #[inline]
-        pub fn account_keys(
-            &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
-                >>(MessageV0::VT_ACCOUNT_KEYS, None)
-            }
-        }
-        #[inline]
-        pub fn recent_blockhash(&self) -> Option<flatbuffers::Vector<'a, u8>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(
-                        MessageV0::VT_RECENT_BLOCKHASH,
-                        None,
-                    )
-            }
-        }
-        #[inline]
-        pub fn instructions(
-            &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CompiledInstruction<'a>>>>
-        {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CompiledInstruction>>,
-                >>(MessageV0::VT_INSTRUCTIONS, None)
-            }
-        }
-        #[inline]
-        pub fn address_table_lookups(
-            &self,
-        ) -> Option<
-            flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<MessageAddressTableLookup<'a>>>,
-        > {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<
-                        'a,
-                        flatbuffers::ForwardsUOffset<MessageAddressTableLookup>,
-                    >,
-                >>(MessageV0::VT_ADDRESS_TABLE_LOOKUPS, None)
-            }
-        }
-    }
-
-    impl flatbuffers::Verifiable for MessageV0<'_> {
-        #[inline]
-        fn run_verifier(
-            v: &mut flatbuffers::Verifier,
-            pos: usize,
-        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-            use self::flatbuffers::Verifiable;
-            v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<MessageHeader>>(
-                    "header",
-                    Self::VT_HEADER,
-                    false,
-                )?
-                .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
-                >>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
-                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
-                    "recent_blockhash",
-                    Self::VT_RECENT_BLOCKHASH,
-                    false,
-                )?
-                .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<CompiledInstruction>>,
-                >>("instructions", Self::VT_INSTRUCTIONS, false)?
-                .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<
-                        '_,
-                        flatbuffers::ForwardsUOffset<MessageAddressTableLookup>,
-                    >,
-                >>(
-                    "address_table_lookups",
-                    Self::VT_ADDRESS_TABLE_LOOKUPS,
-                    false,
-                )?
-                .finish();
-            Ok(())
-        }
-    }
-    pub struct MessageV0Args<'a> {
-        pub header: Option<flatbuffers::WIPOffset<MessageHeader<'a>>>,
-        pub account_keys: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
-            >,
-        >,
-        pub recent_blockhash: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-        pub instructions: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<CompiledInstruction<'a>>>,
-            >,
-        >,
-        pub address_table_lookups: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<
-                    'a,
-                    flatbuffers::ForwardsUOffset<MessageAddressTableLookup<'a>>,
-                >,
-            >,
-        >,
-    }
-    impl<'a> Default for MessageV0Args<'a> {
-        #[inline]
-        fn default() -> Self {
-            MessageV0Args {
-                header: None,
-                account_keys: None,
-                recent_blockhash: None,
-                instructions: None,
-                address_table_lookups: None,
-            }
-        }
-    }
-
-    pub struct MessageV0Builder<'a: 'b, 'b> {
-        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-    }
-    impl<'a: 'b, 'b> MessageV0Builder<'a, 'b> {
-        #[inline]
-        pub fn add_header(&mut self, header: flatbuffers::WIPOffset<MessageHeader<'b>>) {
-            self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<MessageHeader>>(
-                    MessageV0::VT_HEADER,
-                    header,
-                );
-        }
-        #[inline]
-        pub fn add_account_keys(
-            &mut self,
-            account_keys: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
-            >,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                MessageV0::VT_ACCOUNT_KEYS,
-                account_keys,
-            );
-        }
-        #[inline]
-        pub fn add_recent_blockhash(
-            &mut self,
-            recent_blockhash: flatbuffers::WIPOffset<flatbuffers::Vector<'b, u8>>,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                MessageV0::VT_RECENT_BLOCKHASH,
-                recent_blockhash,
-            );
-        }
-        #[inline]
-        pub fn add_instructions(
-            &mut self,
-            instructions: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<CompiledInstruction<'b>>>,
-            >,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                MessageV0::VT_INSTRUCTIONS,
-                instructions,
-            );
-        }
-        #[inline]
-        pub fn add_address_table_lookups(
-            &mut self,
-            address_table_lookups: flatbuffers::WIPOffset<
-                flatbuffers::Vector<
-                    'b,
-                    flatbuffers::ForwardsUOffset<MessageAddressTableLookup<'b>>,
-                >,
-            >,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                MessageV0::VT_ADDRESS_TABLE_LOOKUPS,
-                address_table_lookups,
-            );
-        }
-        #[inline]
-        pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> MessageV0Builder<'a, 'b> {
-            let start = _fbb.start_table();
-            MessageV0Builder {
-                fbb_: _fbb,
-                start_: start,
-            }
-        }
-        #[inline]
-        pub fn finish(self) -> flatbuffers::WIPOffset<MessageV0<'a>> {
-            let o = self.fbb_.end_table(self.start_);
-            flatbuffers::WIPOffset::new(o.value())
-        }
-    }
-
-    impl core::fmt::Debug for MessageV0<'_> {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            let mut ds = f.debug_struct("MessageV0");
-            ds.field("header", &self.header());
-            ds.field("account_keys", &self.account_keys());
-            ds.field("recent_blockhash", &self.recent_blockhash());
-            ds.field("instructions", &self.instructions());
-            ds.field("address_table_lookups", &self.address_table_lookups());
-            ds.finish()
-        }
-    }
-    pub enum MessageAddressTableLookupOffset {}
-    #[derive(Copy, Clone, PartialEq)]
-
-    pub struct MessageAddressTableLookup<'a> {
-        pub _tab: flatbuffers::Table<'a>,
-    }
-
-    impl<'a> flatbuffers::Follow<'a> for MessageAddressTableLookup<'a> {
-        type Inner = MessageAddressTableLookup<'a>;
-        #[inline]
-        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-            Self {
-                _tab: flatbuffers::Table::new(buf, loc),
-            }
-        }
-    }
-
-    impl<'a> MessageAddressTableLookup<'a> {
-        pub const VT_ACCOUNT_KEY: flatbuffers::VOffsetT = 4;
-        pub const VT_WRITABLE_INDEXES: flatbuffers::VOffsetT = 6;
-        pub const VT_READONLY_INDEXES: flatbuffers::VOffsetT = 8;
-
-        #[inline]
-        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-            MessageAddressTableLookup { _tab: table }
-        }
-        #[allow(unused_mut)]
-        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-            args: &'args MessageAddressTableLookupArgs<'args>,
-        ) -> flatbuffers::WIPOffset<MessageAddressTableLookup<'bldr>> {
-            let mut builder = MessageAddressTableLookupBuilder::new(_fbb);
-            if let Some(x) = args.readonly_indexes {
-                builder.add_readonly_indexes(x);
-            }
-            if let Some(x) = args.writable_indexes {
-                builder.add_writable_indexes(x);
-            }
-            if let Some(x) = args.account_key {
-                builder.add_account_key(x);
-            }
-            builder.finish()
-        }
-
-        #[inline]
-        pub fn account_key(&self) -> Option<Pubkey<'a>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<Pubkey>>(
-                    MessageAddressTableLookup::VT_ACCOUNT_KEY,
-                    None,
-                )
-            }
-        }
-        #[inline]
-        pub fn writable_indexes(&self) -> Option<flatbuffers::Vector<'a, u8>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(
-                        MessageAddressTableLookup::VT_WRITABLE_INDEXES,
-                        None,
-                    )
-            }
-        }
-        #[inline]
-        pub fn readonly_indexes(&self) -> Option<flatbuffers::Vector<'a, u8>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab
-                    .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(
-                        MessageAddressTableLookup::VT_READONLY_INDEXES,
-                        None,
-                    )
-            }
-        }
-    }
-
-    impl flatbuffers::Verifiable for MessageAddressTableLookup<'_> {
-        #[inline]
-        fn run_verifier(
-            v: &mut flatbuffers::Verifier,
-            pos: usize,
-        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-            use self::flatbuffers::Verifiable;
-            v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<Pubkey>>(
-                    "account_key",
-                    Self::VT_ACCOUNT_KEY,
-                    false,
-                )?
-                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
-                    "writable_indexes",
-                    Self::VT_WRITABLE_INDEXES,
-                    false,
-                )?
-                .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
-                    "readonly_indexes",
-                    Self::VT_READONLY_INDEXES,
-                    false,
-                )?
-                .finish();
-            Ok(())
-        }
-    }
-    pub struct MessageAddressTableLookupArgs<'a> {
-        pub account_key: Option<flatbuffers::WIPOffset<Pubkey<'a>>>,
-        pub writable_indexes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-        pub readonly_indexes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    }
-    impl<'a> Default for MessageAddressTableLookupArgs<'a> {
-        #[inline]
-        fn default() -> Self {
-            MessageAddressTableLookupArgs {
-                account_key: None,
-                writable_indexes: None,
-                readonly_indexes: None,
-            }
-        }
-    }
-
-    pub struct MessageAddressTableLookupBuilder<'a: 'b, 'b> {
-        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-    }
-    impl<'a: 'b, 'b> MessageAddressTableLookupBuilder<'a, 'b> {
-        #[inline]
-        pub fn add_account_key(&mut self, account_key: flatbuffers::WIPOffset<Pubkey<'b>>) {
-            self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<Pubkey>>(
-                    MessageAddressTableLookup::VT_ACCOUNT_KEY,
-                    account_key,
-                );
-        }
-        #[inline]
-        pub fn add_writable_indexes(
-            &mut self,
-            writable_indexes: flatbuffers::WIPOffset<flatbuffers::Vector<'b, u8>>,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                MessageAddressTableLookup::VT_WRITABLE_INDEXES,
-                writable_indexes,
-            );
-        }
-        #[inline]
-        pub fn add_readonly_indexes(
-            &mut self,
-            readonly_indexes: flatbuffers::WIPOffset<flatbuffers::Vector<'b, u8>>,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                MessageAddressTableLookup::VT_READONLY_INDEXES,
-                readonly_indexes,
-            );
-        }
-        #[inline]
-        pub fn new(
-            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        ) -> MessageAddressTableLookupBuilder<'a, 'b> {
-            let start = _fbb.start_table();
-            MessageAddressTableLookupBuilder {
-                fbb_: _fbb,
-                start_: start,
-            }
-        }
-        #[inline]
-        pub fn finish(self) -> flatbuffers::WIPOffset<MessageAddressTableLookup<'a>> {
-            let o = self.fbb_.end_table(self.start_);
-            flatbuffers::WIPOffset::new(o.value())
-        }
-    }
-
-    impl core::fmt::Debug for MessageAddressTableLookup<'_> {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            let mut ds = f.debug_struct("MessageAddressTableLookup");
-            ds.field("account_key", &self.account_key());
-            ds.field("writable_indexes", &self.writable_indexes());
-            ds.field("readonly_indexes", &self.readonly_indexes());
-            ds.finish()
-        }
-    }
-    pub enum LoadedAddressesOffset {}
-    #[derive(Copy, Clone, PartialEq)]
-
-    pub struct LoadedAddresses<'a> {
-        pub _tab: flatbuffers::Table<'a>,
-    }
-
-    impl<'a> flatbuffers::Follow<'a> for LoadedAddresses<'a> {
-        type Inner = LoadedAddresses<'a>;
-        #[inline]
-        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-            Self {
-                _tab: flatbuffers::Table::new(buf, loc),
-            }
-        }
-    }
-
-    impl<'a> LoadedAddresses<'a> {
-        pub const VT_WRITABLE: flatbuffers::VOffsetT = 4;
-        pub const VT_READONLY: flatbuffers::VOffsetT = 6;
-
-        #[inline]
-        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-            LoadedAddresses { _tab: table }
-        }
-        #[allow(unused_mut)]
-        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-            args: &'args LoadedAddressesArgs<'args>,
-        ) -> flatbuffers::WIPOffset<LoadedAddresses<'bldr>> {
-            let mut builder = LoadedAddressesBuilder::new(_fbb);
-            if let Some(x) = args.readonly {
-                builder.add_readonly(x);
-            }
-            if let Some(x) = args.writable {
-                builder.add_writable(x);
-            }
-            builder.finish()
-        }
-
-        #[inline]
-        pub fn writable(
-            &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
-                >>(LoadedAddresses::VT_WRITABLE, None)
-            }
-        }
-        #[inline]
-        pub fn readonly(
-            &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
-            // Safety:
-            // Created from valid Table for this object
-            // which contains a valid value in this slot
-            unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
-                >>(LoadedAddresses::VT_READONLY, None)
-            }
-        }
-    }
-
-    impl flatbuffers::Verifiable for LoadedAddresses<'_> {
-        #[inline]
-        fn run_verifier(
-            v: &mut flatbuffers::Verifier,
-            pos: usize,
-        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-            use self::flatbuffers::Verifiable;
-            v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
-                >>("writable", Self::VT_WRITABLE, false)?
-                .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
-                >>("readonly", Self::VT_READONLY, false)?
-                .finish();
-            Ok(())
-        }
-    }
-    pub struct LoadedAddressesArgs<'a> {
-        pub writable: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
-            >,
-        >,
-        pub readonly: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
-            >,
-        >,
-    }
-    impl<'a> Default for LoadedAddressesArgs<'a> {
-        #[inline]
-        fn default() -> Self {
-            LoadedAddressesArgs {
-                writable: None,
-                readonly: None,
-            }
-        }
-    }
-
-    pub struct LoadedAddressesBuilder<'a: 'b, 'b> {
-        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-    }
-    impl<'a: 'b, 'b> LoadedAddressesBuilder<'a, 'b> {
-        #[inline]
-        pub fn add_writable(
-            &mut self,
-            writable: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
-            >,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                LoadedAddresses::VT_WRITABLE,
-                writable,
-            );
-        }
-        #[inline]
-        pub fn add_readonly(
-            &mut self,
-            readonly: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
-            >,
-        ) {
-            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                LoadedAddresses::VT_READONLY,
-                readonly,
-            );
-        }
-        #[inline]
-        pub fn new(
-            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-        ) -> LoadedAddressesBuilder<'a, 'b> {
-            let start = _fbb.start_table();
-            LoadedAddressesBuilder {
-                fbb_: _fbb,
-                start_: start,
-            }
-        }
-        #[inline]
-        pub fn finish(self) -> flatbuffers::WIPOffset<LoadedAddresses<'a>> {
-            let o = self.fbb_.end_table(self.start_);
-            flatbuffers::WIPOffset::new(o.value())
-        }
-    }
-
-    impl core::fmt::Debug for LoadedAddresses<'_> {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            let mut ds = f.debug_struct("LoadedAddresses");
-            ds.field("writable", &self.writable());
-            ds.field("readonly", &self.readonly());
             ds.finish()
         }
     }

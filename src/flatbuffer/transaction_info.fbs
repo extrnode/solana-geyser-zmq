@@ -6,60 +6,9 @@ table TransactionInfo {
   signature: Common.Signature;
   is_vote: bool;
   slot: uint64;
-  transaction: SanitizedTransaction;
+  transaction: [uint8];
   transaction_meta: TransactionStatusMeta;
-}
-
-union SanitizedMessage {
-  Legacy: LegacyMessage,
-  V0: LoadedMessageV0,
-}
-
-table SanitizedTransaction {
-  message: SanitizedMessage;
-  message_hash: [uint8];
-  is_simple_vote_tx: bool;
-  signatures: [Common.Signature];
-}
-
-
-table LegacyMessage {
-  header: MessageHeader;
-  account_keys: [Common.Pubkey];
-  recent_blockhash: [uint8];
-  instructions: [CompiledInstruction];
-}
-
-
-table MessageHeader {
-  num_required_signatures: uint8;
-  num_readonly_signed_accounts: uint8;
-  num_readonly_unsigned_accounts: uint8;
-}
-
-table CompiledInstruction {
-  program_id_index: uint8;
-  accounts: [uint8];
-  data: [uint8];
-}
-
-table LoadedMessageV0 {
-  message: MessageV0;
   loaded_addresses: LoadedAddresses;
-}
-
-table MessageV0 {
-  header: MessageHeader;
-  account_keys: [Common.Pubkey];
-  recent_blockhash: [uint8];
-  instructions: [CompiledInstruction];
-  address_table_lookups: [MessageAddressTableLookup];
-}
-
-table MessageAddressTableLookup {
-  account_key: Common.Pubkey;
-  writable_indexes: [uint8];
-  readonly_indexes: [uint8];
 }
 
 table LoadedAddresses {
@@ -67,6 +16,11 @@ table LoadedAddresses {
   readonly: [Common.Pubkey];
 }
 
+table CompiledInstruction {
+  program_id_index: uint8;
+  accounts: [uint8];
+  data: [uint8];
+}
 
 enum TransactionErrorType: uint8 {
     AccountInUse,
