@@ -121,12 +121,12 @@ pub fn serialize_slot(slot: u64, parent: Option<u64>, status: SlotStatus) -> Vec
         &mut builder,
         &SlotArgs {
             slot,
-            parent,
             status: match status {
                 SlotStatus::Processed => Status::Processed,
                 SlotStatus::Rooted => Status::Rooted,
                 SlotStatus::Confirmed => Status::Confirmed,
             },
+            parent,
         },
     );
 
