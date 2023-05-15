@@ -743,6 +743,8 @@ pub mod transaction_info {
         pub const VT_TRANSACTION: flatbuffers::VOffsetT = 10;
         pub const VT_TRANSACTION_META: flatbuffers::VOffsetT = 12;
         pub const VT_LOADED_ADDRESSES: flatbuffers::VOffsetT = 14;
+        pub const VT_ACCOUNT_KEYS: flatbuffers::VOffsetT = 16;
+        pub const VT_MEMO: flatbuffers::VOffsetT = 18;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -755,6 +757,12 @@ pub mod transaction_info {
         ) -> flatbuffers::WIPOffset<TransactionInfo<'bldr>> {
             let mut builder = TransactionInfoBuilder::new(_fbb);
             builder.add_slot(args.slot);
+            if let Some(x) = args.memo {
+                builder.add_memo(x);
+            }
+            if let Some(x) = args.account_keys {
+                builder.add_account_keys(x);
+            }
             if let Some(x) = args.loaded_addresses {
                 builder.add_loaded_addresses(x);
             }
@@ -844,6 +852,29 @@ pub mod transaction_info {
                     )
             }
         }
+        #[inline]
+        pub fn account_keys(
+            &self,
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
+                >>(TransactionInfo::VT_ACCOUNT_KEYS, None)
+            }
+        }
+        #[inline]
+        pub fn memo(&self) -> Option<&'a str> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<&str>>(TransactionInfo::VT_MEMO, None)
+            }
+        }
     }
 
     impl flatbuffers::Verifiable for TransactionInfo<'_> {
@@ -876,6 +907,10 @@ pub mod transaction_info {
                     Self::VT_LOADED_ADDRESSES,
                     false,
                 )?
+                .visit_field::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
+                >>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>("memo", Self::VT_MEMO, false)?
                 .finish();
             Ok(())
         }
@@ -887,6 +922,12 @@ pub mod transaction_info {
         pub transaction: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
         pub transaction_meta: Option<flatbuffers::WIPOffset<TransactionStatusMeta<'a>>>,
         pub loaded_addresses: Option<flatbuffers::WIPOffset<LoadedAddresses<'a>>>,
+        pub account_keys: Option<
+            flatbuffers::WIPOffset<
+                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
+            >,
+        >,
+        pub memo: Option<flatbuffers::WIPOffset<&'a str>>,
     }
     impl<'a> Default for TransactionInfoArgs<'a> {
         #[inline]
@@ -898,6 +939,8 @@ pub mod transaction_info {
                 transaction: None,
                 transaction_meta: None,
                 loaded_addresses: None,
+                account_keys: None,
+                memo: None,
             }
         }
     }
@@ -958,6 +1001,23 @@ pub mod transaction_info {
                 );
         }
         #[inline]
+        pub fn add_account_keys(
+            &mut self,
+            account_keys: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
+            >,
+        ) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionInfo::VT_ACCOUNT_KEYS,
+                account_keys,
+            );
+        }
+        #[inline]
+        pub fn add_memo(&mut self, memo: flatbuffers::WIPOffset<&'b str>) {
+            self.fbb_
+                .push_slot_always::<flatbuffers::WIPOffset<_>>(TransactionInfo::VT_MEMO, memo);
+        }
+        #[inline]
         pub fn new(
             _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
         ) -> TransactionInfoBuilder<'a, 'b> {
@@ -983,6 +1043,8 @@ pub mod transaction_info {
             ds.field("transaction", &self.transaction());
             ds.field("transaction_meta", &self.transaction_meta());
             ds.field("loaded_addresses", &self.loaded_addresses());
+            ds.field("account_keys", &self.account_keys());
+            ds.field("memo", &self.memo());
             ds.finish()
         }
     }
