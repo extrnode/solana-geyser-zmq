@@ -9,6 +9,8 @@ table TransactionInfo {
   transaction: [uint8];
   transaction_meta: TransactionStatusMeta;
   loaded_addresses: LoadedAddresses;
+  account_keys: [Common.Pubkey];
+  memo: string;
 }
 
 table LoadedAddresses {

@@ -1313,6 +1313,18 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
 
     let signature = Some(make_signature(&mut builder, &transaction.signature));
     let tx = Some(builder.create_vector(&tx));
+    let memo = solana_transaction_status::extract_memos::extract_and_fmt_memos(
+        transaction.transaction.message(),
+    )
+    .map(|m| builder.create_string(&m));
+    let account_keys = transaction
+        .transaction
+        .message()
+        .account_keys()
+        .iter()
+        .map(|key| make_pubkey(&mut builder, key))
+        .collect::<Vec<_>>();
+    let account_keys = Some(builder.create_vector(account_keys.as_ref()));
     let transaction_info = TransactionInfo::create(
         &mut builder,
         &TransactionInfoArgs {
@@ -1322,6 +1334,8 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
             transaction: tx,
             transaction_meta,
             loaded_addresses,
+            account_keys,
+            memo,
         },
     );
     builder.finish(transaction_info, None);
