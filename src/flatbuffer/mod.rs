@@ -1,12 +1,16 @@
 //! FlatBuffer serialization module
-use crate::flatbuffer::transaction_info_generated::transaction_info::{
-    CompiledInstruction, CompiledInstructionArgs, InnerByte, InnerByteArgs, InnerInstructions,
-    InnerInstructionsArgs, InstructionError, InstructionErrorArgs, InstructionErrorData,
-    InstructionErrorDataArgs, InstructionErrorInnerData, InstructionErrorType, LoadedAddresses,
-    LoadedAddressesArgs, StringValue, StringValueArgs, TransactionError, TransactionErrorArgs,
-    TransactionErrorData, TransactionErrorType, TransactionInfo, TransactionInfoArgs,
-    TransactionStatusMeta, TransactionStatusMetaArgs, TransactionTokenBalance,
-    TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs, Uint32Value, Uint32ValueArgs,
+use crate::{
+    errors::GeyserError,
+    flatbuffer::transaction_info_generated::transaction_info::{
+        CompiledInstruction, CompiledInstructionArgs, InnerByte, InnerByteArgs, InnerInstructions,
+        InnerInstructionsArgs, InstructionError, InstructionErrorArgs, InstructionErrorData,
+        InstructionErrorDataArgs, InstructionErrorInnerData, InstructionErrorType, LoadedAddresses,
+        LoadedAddressesArgs, StringValue, StringValueArgs, TransactionError, TransactionErrorArgs,
+        TransactionErrorData, TransactionErrorType, TransactionInfo, TransactionInfoArgs,
+        TransactionStatusMeta, TransactionStatusMetaArgs, TransactionTokenBalance,
+        TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs, Uint32Value,
+        Uint32ValueArgs,
+    },
 };
 use account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
 use common_generated::common::{
@@ -200,7 +204,7 @@ pub struct TransactionUpdate {
     pub transaction_meta: solana_transaction_status::TransactionStatusMeta,
 }
 
-pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
+pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>, GeyserError> {
     let mut builder = FlatBufferBuilder::new();
 
     fn make_pubkey<'fbb>(
@@ -231,47 +235,34 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
         )
     }
 
-    let signatures = transaction.transaction.signatures().to_vec();
-    let (message, loaded_addresses) = match &transaction.transaction.message() {
-        solana_sdk::message::SanitizedMessage::Legacy(legacy_message) => (
-            solana_program::message::VersionedMessage::Legacy(legacy_message.clone()),
-            None,
-        ),
-        solana_sdk::message::SanitizedMessage::V0(loaded_message_v0) => (
-            solana_program::message::VersionedMessage::V0(
-                loaded_message_v0.message.clone().into_owned(),
-            ),
-            {
-                let writable = loaded_message_v0
-                    .loaded_addresses
-                    .writable
-                    .iter()
-                    .map(|key| make_pubkey(&mut builder, key))
-                    .collect::<Vec<_>>();
-                let writable = Some(builder.create_vector(writable.as_ref()));
+    let loaded_addresses = match &transaction.transaction.message() {
+        solana_sdk::message::SanitizedMessage::Legacy(_) => None,
+        solana_sdk::message::SanitizedMessage::V0(loaded_message_v0) => {
+            let writable = loaded_message_v0
+                .loaded_addresses
+                .writable
+                .iter()
+                .map(|key| make_pubkey(&mut builder, key))
+                .collect::<Vec<_>>();
+            let writable = Some(builder.create_vector(writable.as_ref()));
 
-                let readonly = loaded_message_v0
-                    .loaded_addresses
-                    .readonly
-                    .iter()
-                    .map(|key| make_pubkey(&mut builder, key))
-                    .collect::<Vec<_>>();
-                let readonly = Some(builder.create_vector(readonly.as_ref()));
+            let readonly = loaded_message_v0
+                .loaded_addresses
+                .readonly
+                .iter()
+                .map(|key| make_pubkey(&mut builder, key))
+                .collect::<Vec<_>>();
+            let readonly = Some(builder.create_vector(readonly.as_ref()));
 
-                let loaded_addresses = LoadedAddresses::create(
-                    &mut builder,
-                    &LoadedAddressesArgs { writable, readonly },
-                );
+            let loaded_addresses =
+                LoadedAddresses::create(&mut builder, &LoadedAddressesArgs { writable, readonly });
 
-                Some(loaded_addresses)
-            },
-        ),
+            Some(loaded_addresses)
+        }
     };
-    let tx = solana_sdk::transaction::VersionedTransaction {
-        signatures,
-        message,
-    };
-    let tx = bincode::serialize(&tx).unwrap();
+
+    let tx = bincode::serialize(&transaction.transaction.to_versioned_transaction())
+        .map_err(|_| GeyserError::TxSerializeError)?;
 
     let inner_instructions =
         if let Some(inner_instructions) = &transaction.transaction_meta.inner_instructions {
@@ -325,7 +316,10 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
                 .ui_amount
                 .is_some()
             {
-                transaction_token_balance.ui_token_amount.ui_amount.unwrap()
+                transaction_token_balance
+                    .ui_token_amount
+                    .ui_amount
+                    .unwrap_or(0.0)
             } else {
                 0.0
             };
@@ -376,7 +370,10 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
                 .ui_amount
                 .is_some()
             {
-                transaction_token_balance.ui_token_amount.ui_amount.unwrap()
+                transaction_token_balance
+                    .ui_token_amount
+                    .ui_amount
+                    .unwrap_or(0.0)
             } else {
                 0.0
             };
@@ -1332,5 +1329,5 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Vec<u8> {
     let mut output = vec![BYTE_PREFIX_TX];
     output.extend(builder.finished_data().to_vec());
 
-    output
+    Ok(output)
 }
