@@ -1,3 +1,7 @@
+![Build on Ubuntu 20 badge](https://github.com/extrnode/solana-geyser-zmq/actions/workflows/build_on_ubuntu_20.04.yml/badge.svg)
+![Build on Ubuntu 22 badge](https://github.com/extrnode/solana-geyser-zmq/actions/workflows/build_on_ubuntu_22.04.yml/badge.svg)
+![Release badge](https://github.com/extrnode/solana-geyser-zmq/actions/workflows/release.yml/badge.svg)
+
 # Solana Geyser ZMQ
 
 ### What's a Solana Geyser Plugin?
