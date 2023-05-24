@@ -11,6 +11,9 @@ table TransactionInfo {
   loaded_addresses: LoadedAddresses;
   account_keys: [Common.Pubkey];
   memo: string;
+  return_data: TransactionReturnData;
+  compute_units_consumed: uint64 = null;
+  index: uint64 = null;
 }
 
 table LoadedAddresses {
@@ -111,7 +114,7 @@ enum InstructionErrorType: uint8 {
     UnsupportedSysvar,
     IllegalOwner,
     MaxAccountsDataSizeExceeded,
-    ActiveVoteAccountClose,
+    MaxAccountsExceeded,
 }
 
 union TransactionErrorData {
@@ -149,6 +152,16 @@ table InstructionError {
 table TransactionError {
     err_type: TransactionErrorType;
     err_data: TransactionErrorData;
+}
+
+enum UiReturnDataEncoding: uint8 {
+    base64
+}
+
+table TransactionReturnData {
+    program_id: string;
+    data_value: string;
+    data_encoding: UiReturnDataEncoding;
 }
 
 table TransactionStatusMeta {

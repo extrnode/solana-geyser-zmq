@@ -158,6 +158,31 @@ impl GeyserPlugin for GeyserPluginHook {
 
                     Ok(())
                 }
+                ReplicaAccountInfoVersions::V0_0_2(acc) => {
+                    let key = Pubkey::new_from_array(acc.pubkey.try_into()?);
+                    let owner = Pubkey::new_from_array(acc.owner.try_into()?);
+
+                    let data = flatbuffer::serialize_account(&AccountUpdate {
+                        key,
+                        lamports: acc.lamports,
+                        owner,
+                        executable: acc.executable,
+                        rent_epoch: acc.rent_epoch,
+                        data: acc.data.to_vec(),
+                        write_version: acc.write_version,
+                        slot,
+                        is_startup,
+                    });
+
+                    inner
+                        .socket
+                        .lock()
+                        .unwrap()
+                        .send(data, inner.zmq_flag)
+                        .map_err(|_| GeyserError::ZmqSend)?;
+
+                    Ok(())
+                }
             },
         )
     }
@@ -213,6 +238,28 @@ impl GeyserPlugin for GeyserPluginHook {
                             slot,
                             transaction: tx.transaction.clone(),
                             transaction_meta: tx.transaction_status_meta.clone(),
+                            index: None,
+                        })?;
+
+                        inner
+                            .socket
+                            .lock()
+                            .unwrap()
+                            .send(data, inner.zmq_flag)
+                            .map_err(|_| GeyserError::ZmqSend)?;
+                    }
+                    ReplicaTransactionInfoVersions::V0_0_2(tx) => {
+                        if tx.is_vote && inner.config.skip_vote_txs {
+                            return Ok(());
+                        }
+
+                        let data = flatbuffer::serialize_transaction(&TransactionUpdate {
+                            signature: *tx.signature,
+                            is_vote: tx.is_vote,
+                            slot,
+                            transaction: tx.transaction.clone(),
+                            transaction_meta: tx.transaction_status_meta.clone(),
+                            index: Some(tx.index),
                         })?;
 
                         inner

@@ -296,7 +296,7 @@ pub mod transaction_info {
         InstructionErrorType::UnsupportedSysvar,
         InstructionErrorType::IllegalOwner,
         InstructionErrorType::MaxAccountsDataSizeExceeded,
-        InstructionErrorType::ActiveVoteAccountClose,
+        InstructionErrorType::MaxAccountsExceeded,
     ];
 
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -355,7 +355,7 @@ pub mod transaction_info {
         pub const UnsupportedSysvar: Self = Self(48);
         pub const IllegalOwner: Self = Self(49);
         pub const MaxAccountsDataSizeExceeded: Self = Self(50);
-        pub const ActiveVoteAccountClose: Self = Self(51);
+        pub const MaxAccountsExceeded: Self = Self(51);
 
         pub const ENUM_MIN: u8 = 0;
         pub const ENUM_MAX: u8 = 51;
@@ -411,7 +411,7 @@ pub mod transaction_info {
             Self::UnsupportedSysvar,
             Self::IllegalOwner,
             Self::MaxAccountsDataSizeExceeded,
-            Self::ActiveVoteAccountClose,
+            Self::MaxAccountsExceeded,
         ];
         /// Returns the variant's name or "" if unknown.
         pub fn variant_name(self) -> Option<&'static str> {
@@ -467,7 +467,7 @@ pub mod transaction_info {
                 Self::UnsupportedSysvar => Some("UnsupportedSysvar"),
                 Self::IllegalOwner => Some("IllegalOwner"),
                 Self::MaxAccountsDataSizeExceeded => Some("MaxAccountsDataSizeExceeded"),
-                Self::ActiveVoteAccountClose => Some("ActiveVoteAccountClose"),
+                Self::MaxAccountsExceeded => Some("MaxAccountsExceeded"),
                 _ => None,
             }
         }
@@ -719,6 +719,94 @@ pub mod transaction_info {
     impl flatbuffers::SimpleToVerifyInSlice for InstructionErrorInnerData {}
     pub struct InstructionErrorInnerDataUnionTableOffset {}
 
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use associated constants instead. This will no longer be generated in 2021."
+    )]
+    pub const ENUM_MIN_UI_RETURN_DATA_ENCODING: u8 = 0;
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use associated constants instead. This will no longer be generated in 2021."
+    )]
+    pub const ENUM_MAX_UI_RETURN_DATA_ENCODING: u8 = 0;
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use associated constants instead. This will no longer be generated in 2021."
+    )]
+    #[allow(non_camel_case_types)]
+    pub const ENUM_VALUES_UI_RETURN_DATA_ENCODING: [UiReturnDataEncoding; 1] =
+        [UiReturnDataEncoding::base64];
+
+    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+    #[repr(transparent)]
+    pub struct UiReturnDataEncoding(pub u8);
+    #[allow(non_upper_case_globals)]
+    impl UiReturnDataEncoding {
+        pub const base64: Self = Self(0);
+
+        pub const ENUM_MIN: u8 = 0;
+        pub const ENUM_MAX: u8 = 0;
+        pub const ENUM_VALUES: &'static [Self] = &[Self::base64];
+        /// Returns the variant's name or "" if unknown.
+        pub fn variant_name(self) -> Option<&'static str> {
+            match self {
+                Self::base64 => Some("base64"),
+                _ => None,
+            }
+        }
+    }
+    impl core::fmt::Debug for UiReturnDataEncoding {
+        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+            if let Some(name) = self.variant_name() {
+                f.write_str(name)
+            } else {
+                f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+            }
+        }
+    }
+    impl<'a> flatbuffers::Follow<'a> for UiReturnDataEncoding {
+        type Inner = Self;
+        #[inline]
+        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+            let b = flatbuffers::read_scalar_at::<u8>(buf, loc);
+            Self(b)
+        }
+    }
+
+    impl flatbuffers::Push for UiReturnDataEncoding {
+        type Output = UiReturnDataEncoding;
+        #[inline]
+        unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
+            flatbuffers::emplace_scalar::<u8>(dst, self.0);
+        }
+    }
+
+    impl flatbuffers::EndianScalar for UiReturnDataEncoding {
+        type Scalar = u8;
+        #[inline]
+        fn to_little_endian(self) -> u8 {
+            self.0.to_le()
+        }
+        #[inline]
+        #[allow(clippy::wrong_self_convention)]
+        fn from_little_endian(v: u8) -> Self {
+            let b = u8::from_le(v);
+            Self(b)
+        }
+    }
+
+    impl<'a> flatbuffers::Verifiable for UiReturnDataEncoding {
+        #[inline]
+        fn run_verifier(
+            v: &mut flatbuffers::Verifier,
+            pos: usize,
+        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+            use self::flatbuffers::Verifiable;
+            u8::run_verifier(v, pos)
+        }
+    }
+
+    impl flatbuffers::SimpleToVerifyInSlice for UiReturnDataEncoding {}
     pub enum TransactionInfoOffset {}
     #[derive(Copy, Clone, PartialEq)]
 
@@ -745,6 +833,9 @@ pub mod transaction_info {
         pub const VT_LOADED_ADDRESSES: flatbuffers::VOffsetT = 14;
         pub const VT_ACCOUNT_KEYS: flatbuffers::VOffsetT = 16;
         pub const VT_MEMO: flatbuffers::VOffsetT = 18;
+        pub const VT_RETURN_DATA: flatbuffers::VOffsetT = 20;
+        pub const VT_COMPUTE_UNITS_CONSUMED: flatbuffers::VOffsetT = 22;
+        pub const VT_INDEX: flatbuffers::VOffsetT = 24;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -756,7 +847,16 @@ pub mod transaction_info {
             args: &'args TransactionInfoArgs<'args>,
         ) -> flatbuffers::WIPOffset<TransactionInfo<'bldr>> {
             let mut builder = TransactionInfoBuilder::new(_fbb);
+            if let Some(x) = args.index {
+                builder.add_index(x);
+            }
+            if let Some(x) = args.compute_units_consumed {
+                builder.add_compute_units_consumed(x);
+            }
             builder.add_slot(args.slot);
+            if let Some(x) = args.return_data {
+                builder.add_return_data(x);
+            }
             if let Some(x) = args.memo {
                 builder.add_memo(x);
             }
@@ -875,6 +975,36 @@ pub mod transaction_info {
                     .get::<flatbuffers::ForwardsUOffset<&str>>(TransactionInfo::VT_MEMO, None)
             }
         }
+        #[inline]
+        pub fn return_data(&self) -> Option<TransactionReturnData<'a>> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<TransactionReturnData>>(
+                        TransactionInfo::VT_RETURN_DATA,
+                        None,
+                    )
+            }
+        }
+        #[inline]
+        pub fn compute_units_consumed(&self) -> Option<u64> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<u64>(TransactionInfo::VT_COMPUTE_UNITS_CONSUMED, None)
+            }
+        }
+        #[inline]
+        pub fn index(&self) -> Option<u64> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe { self._tab.get::<u64>(TransactionInfo::VT_INDEX, None) }
+        }
     }
 
     impl flatbuffers::Verifiable for TransactionInfo<'_> {
@@ -911,6 +1041,17 @@ pub mod transaction_info {
                     flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
                 >>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
                 .visit_field::<flatbuffers::ForwardsUOffset<&str>>("memo", Self::VT_MEMO, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<TransactionReturnData>>(
+                    "return_data",
+                    Self::VT_RETURN_DATA,
+                    false,
+                )?
+                .visit_field::<u64>(
+                    "compute_units_consumed",
+                    Self::VT_COMPUTE_UNITS_CONSUMED,
+                    false,
+                )?
+                .visit_field::<u64>("index", Self::VT_INDEX, false)?
                 .finish();
             Ok(())
         }
@@ -928,6 +1069,9 @@ pub mod transaction_info {
             >,
         >,
         pub memo: Option<flatbuffers::WIPOffset<&'a str>>,
+        pub return_data: Option<flatbuffers::WIPOffset<TransactionReturnData<'a>>>,
+        pub compute_units_consumed: Option<u64>,
+        pub index: Option<u64>,
     }
     impl<'a> Default for TransactionInfoArgs<'a> {
         #[inline]
@@ -941,6 +1085,9 @@ pub mod transaction_info {
                 loaded_addresses: None,
                 account_keys: None,
                 memo: None,
+                return_data: None,
+                compute_units_consumed: None,
+                index: None,
             }
         }
     }
@@ -1018,6 +1165,29 @@ pub mod transaction_info {
                 .push_slot_always::<flatbuffers::WIPOffset<_>>(TransactionInfo::VT_MEMO, memo);
         }
         #[inline]
+        pub fn add_return_data(
+            &mut self,
+            return_data: flatbuffers::WIPOffset<TransactionReturnData<'b>>,
+        ) {
+            self.fbb_
+                .push_slot_always::<flatbuffers::WIPOffset<TransactionReturnData>>(
+                    TransactionInfo::VT_RETURN_DATA,
+                    return_data,
+                );
+        }
+        #[inline]
+        pub fn add_compute_units_consumed(&mut self, compute_units_consumed: u64) {
+            self.fbb_.push_slot_always::<u64>(
+                TransactionInfo::VT_COMPUTE_UNITS_CONSUMED,
+                compute_units_consumed,
+            );
+        }
+        #[inline]
+        pub fn add_index(&mut self, index: u64) {
+            self.fbb_
+                .push_slot_always::<u64>(TransactionInfo::VT_INDEX, index);
+        }
+        #[inline]
         pub fn new(
             _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
         ) -> TransactionInfoBuilder<'a, 'b> {
@@ -1045,6 +1215,9 @@ pub mod transaction_info {
             ds.field("loaded_addresses", &self.loaded_addresses());
             ds.field("account_keys", &self.account_keys());
             ds.field("memo", &self.memo());
+            ds.field("return_data", &self.return_data());
+            ds.field("compute_units_consumed", &self.compute_units_consumed());
+            ds.field("index", &self.index());
             ds.finish()
         }
     }
@@ -2302,6 +2475,184 @@ pub mod transaction_info {
                     ds.field("err_data", &x)
                 }
             };
+            ds.finish()
+        }
+    }
+    pub enum TransactionReturnDataOffset {}
+    #[derive(Copy, Clone, PartialEq)]
+
+    pub struct TransactionReturnData<'a> {
+        pub _tab: flatbuffers::Table<'a>,
+    }
+
+    impl<'a> flatbuffers::Follow<'a> for TransactionReturnData<'a> {
+        type Inner = TransactionReturnData<'a>;
+        #[inline]
+        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+            Self {
+                _tab: flatbuffers::Table::new(buf, loc),
+            }
+        }
+    }
+
+    impl<'a> TransactionReturnData<'a> {
+        pub const VT_PROGRAM_ID: flatbuffers::VOffsetT = 4;
+        pub const VT_DATA_VALUE: flatbuffers::VOffsetT = 6;
+        pub const VT_DATA_ENCODING: flatbuffers::VOffsetT = 8;
+
+        #[inline]
+        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+            TransactionReturnData { _tab: table }
+        }
+        #[allow(unused_mut)]
+        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+            args: &'args TransactionReturnDataArgs<'args>,
+        ) -> flatbuffers::WIPOffset<TransactionReturnData<'bldr>> {
+            let mut builder = TransactionReturnDataBuilder::new(_fbb);
+            if let Some(x) = args.data_value {
+                builder.add_data_value(x);
+            }
+            if let Some(x) = args.program_id {
+                builder.add_program_id(x);
+            }
+            builder.add_data_encoding(args.data_encoding);
+            builder.finish()
+        }
+
+        #[inline]
+        pub fn program_id(&self) -> Option<&'a str> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(
+                    TransactionReturnData::VT_PROGRAM_ID,
+                    None,
+                )
+            }
+        }
+        #[inline]
+        pub fn data_value(&self) -> Option<&'a str> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(
+                    TransactionReturnData::VT_DATA_VALUE,
+                    None,
+                )
+            }
+        }
+        #[inline]
+        pub fn data_encoding(&self) -> UiReturnDataEncoding {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<UiReturnDataEncoding>(
+                        TransactionReturnData::VT_DATA_ENCODING,
+                        Some(UiReturnDataEncoding::base64),
+                    )
+                    .unwrap()
+            }
+        }
+    }
+
+    impl flatbuffers::Verifiable for TransactionReturnData<'_> {
+        #[inline]
+        fn run_verifier(
+            v: &mut flatbuffers::Verifier,
+            pos: usize,
+        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+            use self::flatbuffers::Verifiable;
+            v.visit_table(pos)?
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
+                    "program_id",
+                    Self::VT_PROGRAM_ID,
+                    false,
+                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
+                    "data_value",
+                    Self::VT_DATA_VALUE,
+                    false,
+                )?
+                .visit_field::<UiReturnDataEncoding>(
+                    "data_encoding",
+                    Self::VT_DATA_ENCODING,
+                    false,
+                )?
+                .finish();
+            Ok(())
+        }
+    }
+    pub struct TransactionReturnDataArgs<'a> {
+        pub program_id: Option<flatbuffers::WIPOffset<&'a str>>,
+        pub data_value: Option<flatbuffers::WIPOffset<&'a str>>,
+        pub data_encoding: UiReturnDataEncoding,
+    }
+    impl<'a> Default for TransactionReturnDataArgs<'a> {
+        #[inline]
+        fn default() -> Self {
+            TransactionReturnDataArgs {
+                program_id: None,
+                data_value: None,
+                data_encoding: UiReturnDataEncoding::base64,
+            }
+        }
+    }
+
+    pub struct TransactionReturnDataBuilder<'a: 'b, 'b> {
+        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+    }
+    impl<'a: 'b, 'b> TransactionReturnDataBuilder<'a, 'b> {
+        #[inline]
+        pub fn add_program_id(&mut self, program_id: flatbuffers::WIPOffset<&'b str>) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionReturnData::VT_PROGRAM_ID,
+                program_id,
+            );
+        }
+        #[inline]
+        pub fn add_data_value(&mut self, data_value: flatbuffers::WIPOffset<&'b str>) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionReturnData::VT_DATA_VALUE,
+                data_value,
+            );
+        }
+        #[inline]
+        pub fn add_data_encoding(&mut self, data_encoding: UiReturnDataEncoding) {
+            self.fbb_.push_slot::<UiReturnDataEncoding>(
+                TransactionReturnData::VT_DATA_ENCODING,
+                data_encoding,
+                UiReturnDataEncoding::base64,
+            );
+        }
+        #[inline]
+        pub fn new(
+            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        ) -> TransactionReturnDataBuilder<'a, 'b> {
+            let start = _fbb.start_table();
+            TransactionReturnDataBuilder {
+                fbb_: _fbb,
+                start_: start,
+            }
+        }
+        #[inline]
+        pub fn finish(self) -> flatbuffers::WIPOffset<TransactionReturnData<'a>> {
+            let o = self.fbb_.end_table(self.start_);
+            flatbuffers::WIPOffset::new(o.value())
+        }
+    }
+
+    impl core::fmt::Debug for TransactionReturnData<'_> {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            let mut ds = f.debug_struct("TransactionReturnData");
+            ds.field("program_id", &self.program_id());
+            ds.field("data_value", &self.data_value());
+            ds.field("data_encoding", &self.data_encoding());
             ds.finish()
         }
     }
