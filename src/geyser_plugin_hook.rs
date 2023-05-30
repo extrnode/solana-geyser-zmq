@@ -132,32 +132,50 @@ impl GeyserPlugin for GeyserPluginHook {
 
         self.with_inner(
             || GeyserPluginError::AccountsUpdateError { msg: UNINIT.into() },
-            |inner| match account {
-                ReplicaAccountInfoVersions::V0_0_1(acc) => {
-                    let key = Pubkey::new_from_array(acc.pubkey.try_into()?);
-                    let owner = Pubkey::new_from_array(acc.owner.try_into()?);
+            |inner| {
+                let account_update = match account {
+                    ReplicaAccountInfoVersions::V0_0_1(acc) => {
+                        let key = Pubkey::new_from_array(acc.pubkey.try_into()?);
+                        let owner = Pubkey::new_from_array(acc.owner.try_into()?);
 
-                    let data = flatbuffer::serialize_account(&AccountUpdate {
-                        key,
-                        lamports: acc.lamports,
-                        owner,
-                        executable: acc.executable,
-                        rent_epoch: acc.rent_epoch,
-                        data: acc.data.to_vec(),
-                        write_version: acc.write_version,
-                        slot,
-                        is_startup,
-                    });
+                        AccountUpdate {
+                            key,
+                            lamports: acc.lamports,
+                            owner,
+                            executable: acc.executable,
+                            rent_epoch: acc.rent_epoch,
+                            data: acc.data.to_vec(),
+                            write_version: acc.write_version,
+                            slot,
+                            is_startup,
+                        }
+                    }
+                    ReplicaAccountInfoVersions::V0_0_2(acc) => {
+                        let key = Pubkey::new_from_array(acc.pubkey.try_into()?);
+                        let owner = Pubkey::new_from_array(acc.owner.try_into()?);
 
-                    inner
-                        .socket
-                        .lock()
-                        .unwrap()
-                        .send(data, inner.zmq_flag)
-                        .map_err(|_| GeyserError::ZmqSend)?;
+                        AccountUpdate {
+                            key,
+                            lamports: acc.lamports,
+                            owner,
+                            executable: acc.executable,
+                            rent_epoch: acc.rent_epoch,
+                            data: acc.data.to_vec(),
+                            write_version: acc.write_version,
+                            slot,
+                            is_startup,
+                        }
+                    }
+                };
+                let data = flatbuffer::serialize_account(&account_update);
+                inner
+                    .socket
+                    .lock()
+                    .unwrap()
+                    .send(data, inner.zmq_flag)
+                    .map_err(|_| GeyserError::ZmqSend)?;
 
-                    Ok(())
-                }
+                Ok(())
             },
         )
     }
@@ -201,28 +219,19 @@ impl GeyserPlugin for GeyserPluginHook {
         self.with_inner(
             || GeyserPluginError::TransactionUpdateError { msg: UNINIT.into() },
             |inner| {
-                match transaction {
-                    ReplicaTransactionInfoVersions::V0_0_1(tx) => {
-                        if tx.is_vote && inner.config.skip_vote_txs {
-                            return Ok(());
-                        }
+                let tx_update = TransactionUpdate::from_transaction(transaction, slot);
+                if tx_update.is_vote && inner.config.skip_vote_txs {
+                    return Ok(());
+                }
 
-                        let data = flatbuffer::serialize_transaction(&TransactionUpdate {
-                            signature: *tx.signature,
-                            is_vote: tx.is_vote,
-                            slot,
-                            transaction: tx.transaction.clone(),
-                            transaction_meta: tx.transaction_status_meta.clone(),
-                        })?;
+                let data = flatbuffer::serialize_transaction(&tx_update)?;
 
-                        inner
-                            .socket
-                            .lock()
-                            .unwrap()
-                            .send(data, inner.zmq_flag)
-                            .map_err(|_| GeyserError::ZmqSend)?;
-                    }
-                };
+                inner
+                    .socket
+                    .lock()
+                    .unwrap()
+                    .send(data, inner.zmq_flag)
+                    .map_err(|_| GeyserError::ZmqSend)?;
 
                 Ok(())
             },
@@ -275,5 +284,28 @@ impl GeyserPlugin for GeyserPluginHook {
 impl Debug for GeyserPluginHook {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "GeyserPluginHook")
+    }
+}
+
+impl TransactionUpdate {
+    fn from_transaction(tx: ReplicaTransactionInfoVersions, slot: u64) -> Self {
+        match tx {
+            ReplicaTransactionInfoVersions::V0_0_1(tx) => TransactionUpdate {
+                signature: *tx.signature,
+                is_vote: tx.is_vote,
+                slot,
+                transaction: tx.transaction.clone(),
+                transaction_meta: tx.transaction_status_meta.clone(),
+                index: None,
+            },
+            ReplicaTransactionInfoVersions::V0_0_2(tx) => TransactionUpdate {
+                signature: *tx.signature,
+                is_vote: tx.is_vote,
+                slot,
+                transaction: tx.transaction.clone(),
+                transaction_meta: tx.transaction_status_meta.clone(),
+                index: Some(tx.index),
+            },
+        }
     }
 }

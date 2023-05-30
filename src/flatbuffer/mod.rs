@@ -1,4 +1,7 @@
 //! FlatBuffer serialization module
+use crate::flatbuffer::transaction_info_generated::transaction_info::{
+    TransactionReturnData, TransactionReturnDataArgs,
+};
 use crate::{
     errors::GeyserError,
     flatbuffer::transaction_info_generated::transaction_info::{
@@ -22,6 +25,7 @@ use solana_geyser_plugin_interface::geyser_plugin_interface::{ReplicaBlockInfo, 
 pub use solana_program::hash::Hash;
 use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
+use solana_transaction_status::{UiReturnDataEncoding, UiTransactionReturnData};
 
 use self::{
     block_info_generated::block_info::{BlockInfo, BlockInfoArgs},
@@ -202,6 +206,7 @@ pub struct TransactionUpdate {
     pub slot: u64,
     pub transaction: solana_sdk::transaction::SanitizedTransaction,
     pub transaction_meta: solana_transaction_status::TransactionStatusMeta,
+    pub index: Option<usize>,
 }
 
 pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>, GeyserError> {
@@ -1016,11 +1021,11 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                                     err_data: None,
                                 },
                             )),
-                        solana_sdk::instruction::InstructionError::ActiveVoteAccountClose =>
+                        solana_sdk::instruction::InstructionError::MaxAccountsExceeded =>
                             Some(InstructionError::create(
                                 &mut builder,
                                 &InstructionErrorArgs {
-                                    err_type: InstructionErrorType::ActiveVoteAccountClose,
+                                    err_type: InstructionErrorType::MaxAccountsExceeded,
                                     err_data_type: Default::default(),
                                     err_data: None,
                                 },
@@ -1325,6 +1330,33 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
         .map(|key| make_pubkey(&mut builder, key))
         .collect::<Vec<_>>();
     let account_keys = Some(builder.create_vector(account_keys.as_ref()));
+
+    let return_data = transaction
+        .transaction_meta
+        .return_data
+        .as_ref()
+        .map(|return_data| UiTransactionReturnData::from(return_data.clone()));
+    let return_data = match return_data {
+        None => None,
+        Some(return_data) => {
+            let program_id = Some(builder.create_string(&return_data.program_id));
+            let data_value = Some(builder.create_string(&return_data.data.0));
+            let data_encoding = match return_data.data.1 {
+                UiReturnDataEncoding::Base64 => {
+                    transaction_info_generated::transaction_info::UiReturnDataEncoding::base64
+                }
+            };
+            Some(TransactionReturnData::create(
+                &mut builder,
+                &TransactionReturnDataArgs {
+                    program_id,
+                    data_value,
+                    data_encoding,
+                },
+            ))
+        }
+    };
+
     let transaction_info = TransactionInfo::create(
         &mut builder,
         &TransactionInfoArgs {
@@ -1336,6 +1368,9 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
             loaded_addresses,
             account_keys,
             memo,
+            return_data,
+            compute_units_consumed: transaction.transaction_meta.compute_units_consumed,
+            index: transaction.index.map(|index| index as u64),
         },
     );
     builder.finish(transaction_info, None);
