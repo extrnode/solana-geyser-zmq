@@ -86,8 +86,9 @@ impl GeyserPlugin for GeyserPluginHook {
         let cfg = Config::read(config_file).unwrap();
 
         let ctx = zmq::Context::new();
-        let socket = ctx.socket(zmq::PUSH).unwrap();
+        let socket = ctx.socket(zmq::PUB).unwrap();
 
+        socket.set_linger(0).unwrap();
         let sndhwm = 1_000_000_000;
         socket.set_sndhwm(sndhwm).unwrap();
         socket
