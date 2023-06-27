@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum GeyserError {
     #[error("zmq send error")]
-    ZmqSend,
+    TcpSend(usize),
 
     #[error("tx serialization error")]
     TxSerializeError,

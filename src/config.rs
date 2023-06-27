@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub zmq_port: usize,
+    pub zmq_port: u16,
     pub zmq_no_wait: bool,
 
     pub send_transactions: bool,
