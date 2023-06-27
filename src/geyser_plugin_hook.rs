@@ -85,13 +85,13 @@ impl GeyserPlugin for GeyserPluginHook {
 
         let cfg = Config::read(config_file).unwrap();
 
-        let socket = TcpSender::new();
+        let socket = TcpSender::default();
         socket.bind(cfg.zmq_port, 1_000_000).unwrap();
 
         info!("[on_load] - socket created");
 
         self.0 = Some(Arc::new(Inner {
-            socket: socket,
+            socket,
             metrics: metrics.clone(),
             config: cfg,
         }));

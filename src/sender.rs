@@ -11,7 +11,7 @@ pub struct TcpSender {
 }
 
 impl TcpSender {
-    pub fn new() -> Self {
+    pub fn default() -> Self {
         TcpSender {
             conns: Arc::new(RwLock::new(Vec::new())),
         }
