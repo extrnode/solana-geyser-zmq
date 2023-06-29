@@ -18,9 +18,21 @@ impl TcpSender {
         }
     }
 
+    fn pack_message(&self, msg: Vec<u8>) -> Vec<u8> {
+        const HEADER_BYTE_SIZE: usize = 4;
+        let mut result = Vec::new();
+        result.reserve_exact(HEADER_BYTE_SIZE + msg.len());
+
+        result.extend_from_slice(&(msg.len() as u32).to_le_bytes());
+        result.extend_from_slice(&msg);
+
+        result
+    }
+
     pub fn publish(&self, message: Vec<u8>) -> Result<(), GeyserError> {
         let mut conns_to_remove = Vec::new();
         let mut send_errs = 0;
+        let message = self.pack_message(message);
 
         {
             let conns = self
