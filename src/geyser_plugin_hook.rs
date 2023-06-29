@@ -48,13 +48,22 @@ impl GeyserPluginHook {
                                     .fetch_add(*amount, Ordering::Relaxed);
                             }
                             GeyserError::TxSerializeError => {
-                                inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
+                                inner.metrics.serialize_errs.fetch_add(1, Ordering::Relaxed);
+                            }
+                            GeyserError::SenderLockError => {
+                                inner
+                                    .metrics
+                                    .sender_lock_errs
+                                    .fetch_add(1, Ordering::Relaxed);
+                            }
+                            GeyserError::ConnLockError => {
+                                inner.metrics.conn_lock_errs.fetch_add(1, Ordering::Relaxed);
                             }
                         }
 
                         Ok(())
                     } else {
-                        inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
+                        inner.metrics.untyped_errs.fetch_add(1, Ordering::Relaxed);
 
                         Err(GeyserPluginError::Custom(e.into()))
                     }
@@ -86,7 +95,7 @@ impl GeyserPlugin for GeyserPluginHook {
         let cfg = Config::read(config_file).unwrap();
 
         let socket = TcpSender::default();
-        socket.bind(cfg.zmq_port, 1_000_000).unwrap();
+        socket.bind(cfg.port, 1_000_000).unwrap();
 
         info!("[on_load] - socket created");
 
