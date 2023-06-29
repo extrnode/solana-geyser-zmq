@@ -30,7 +30,7 @@ impl Metrics {
 
 impl std::fmt::Display for Metrics {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("geyser-zmq")
+        fmt.debug_struct("geyser-metrics")
             .field("send_errs", &self.send_errs)
             .field("serialize_errs", &self.serialize_errs)
             .field("sender_lock_errs", &self.sender_lock_errs)
