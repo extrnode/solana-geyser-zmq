@@ -61,7 +61,7 @@ impl TcpSender {
         Ok(())
     }
 
-    pub fn bind(&self, port: u16, buffer_size: usize, batch_size: usize) -> io::Result<()> {
+    pub fn bind(&self, port: u16, buffer_size: usize, batch_max_bytes: usize) -> io::Result<()> {
         let listener = TcpListener::bind(("0.0.0.0", port))?;
 
         info!("TCP server listening on port {}", port);
@@ -79,7 +79,7 @@ impl TcpSender {
                         }
 
                         thread::spawn(move || {
-                            handle_connection(stream, rx, batch_size.clone());
+                            handle_connection(stream, rx, batch_max_bytes.clone());
                         });
                     }
                     Err(e) => {
@@ -102,33 +102,39 @@ impl TcpSender {
     }
 }
 
-fn pack_message(msg: Vec<u8>) -> Vec<u8> {
-    const HEADER_BYTE_SIZE: usize = 4;
-    let mut result = Vec::new();
-    result.reserve_exact(HEADER_BYTE_SIZE + msg.len());
+const HEADER_BYTE_SIZE: usize = 4;
 
+fn pack_message(msg: Vec<u8>) -> Vec<u8> {
+    let mut result = Vec::with_capacity(HEADER_BYTE_SIZE + msg.len());
     result.extend_from_slice(&(msg.len() as u32).to_le_bytes());
     result.extend_from_slice(&msg);
 
     result
 }
 
-fn handle_connection(mut stream: TcpStream, rx: Receiver<Vec<u8>>, batch_size: usize) {
-    let mut msg_batch = Vec::with_capacity(batch_size);
+fn handle_connection(mut stream: TcpStream, rx: Receiver<Vec<u8>>, batch_max_bytes: usize) {
+    const DEFAULT_VECTOR_PREALLOC: usize = 1024 * 1024;
+    let mut msg_batch = Vec::with_capacity(DEFAULT_VECTOR_PREALLOC);
+    let mut total_bytesize = 0;
 
     for msg in rx {
+        total_bytesize += msg.len();
         msg_batch.push(msg);
 
-        if msg_batch.len() >= batch_size {
-            let flattened = msg_batch.clone().into_iter().flatten().collect::<Vec<u8>>();
-            let flattened = pack_message(flattened);
+        if total_bytesize >= batch_max_bytes {
+            let mut batch = Vec::with_capacity(total_bytesize + HEADER_BYTE_SIZE);
+            batch.extend_from_slice(&(total_bytesize as u32).to_le_bytes());
+            for msg in &msg_batch {
+                batch.extend_from_slice(msg);
+            }
 
-            if let Err(e) = stream.write_all(&flattened) {
+            if let Err(e) = stream.write_all(&batch) {
                 error!("Error writing data: {}", e);
                 break;
             }
 
             msg_batch.clear();
+            total_bytesize = 0;
         }
     }
 }

@@ -4,7 +4,7 @@ use serde::Deserialize;
 pub struct Config {
     pub tcp_port: u16,
     pub tcp_buffer_size: usize,
-    pub tcp_batch_size: usize,
+    pub tcp_batch_max_bytes: usize,
 
     pub send_transactions: bool,
     pub send_accounts: bool,
