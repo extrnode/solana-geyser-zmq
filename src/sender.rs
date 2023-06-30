@@ -18,21 +18,10 @@ impl TcpSender {
         }
     }
 
-    fn pack_message(&self, msg: Vec<u8>) -> Vec<u8> {
-        const HEADER_BYTE_SIZE: usize = 4;
-        let mut result = Vec::new();
-        result.reserve_exact(HEADER_BYTE_SIZE + msg.len());
-
-        result.extend_from_slice(&(msg.len() as u32).to_le_bytes());
-        result.extend_from_slice(&msg);
-
-        result
-    }
-
     pub fn publish(&self, message: Vec<u8>) -> Result<(), GeyserError> {
         let mut conns_to_remove = Vec::new();
         let mut send_errs = 0;
-        let message = self.pack_message(message);
+        let message = pack_message(message);
 
         {
             let conns = self
@@ -72,7 +61,7 @@ impl TcpSender {
         Ok(())
     }
 
-    pub fn bind(&self, port: u16, buffer_size: usize) -> io::Result<()> {
+    pub fn bind(&self, port: u16, buffer_size: usize, batch_size: usize) -> io::Result<()> {
         let listener = TcpListener::bind(("0.0.0.0", port))?;
 
         info!("TCP server listening on port {}", port);
@@ -90,7 +79,7 @@ impl TcpSender {
                         }
 
                         thread::spawn(move || {
-                            handle_connection(stream, rx);
+                            handle_connection(stream, rx, batch_size.clone());
                         });
                     }
                     Err(e) => {
@@ -113,11 +102,33 @@ impl TcpSender {
     }
 }
 
-fn handle_connection(mut stream: TcpStream, rx: Receiver<Vec<u8>>) {
+fn pack_message(msg: Vec<u8>) -> Vec<u8> {
+    const HEADER_BYTE_SIZE: usize = 4;
+    let mut result = Vec::new();
+    result.reserve_exact(HEADER_BYTE_SIZE + msg.len());
+
+    result.extend_from_slice(&(msg.len() as u32).to_le_bytes());
+    result.extend_from_slice(&msg);
+
+    result
+}
+
+fn handle_connection(mut stream: TcpStream, rx: Receiver<Vec<u8>>, batch_size: usize) {
+    let mut msg_batch = Vec::with_capacity(batch_size);
+
     for msg in rx {
-        if let Err(e) = stream.write_all(&msg) {
-            error!("Error writing data: {}", e);
-            break;
+        msg_batch.push(msg);
+
+        if msg_batch.len() >= batch_size {
+            let flattened = msg_batch.clone().into_iter().flatten().collect::<Vec<u8>>();
+            let flattened = pack_message(flattened);
+
+            if let Err(e) = stream.write_all(&flattened) {
+                error!("Error writing data: {}", e);
+                break;
+            }
+
+            msg_batch.clear();
         }
     }
 }

@@ -1,6 +1,8 @@
 {
     "libpath": "../target/release/libsolana_geyser_plugin_scaffold.so",
-    "port": 2000,
+    "tcp_port": 2000,
+    "tcp_buffer_size": 100000000,
+    "tcp_batch_size": 1000,
     "send_transactions": true,
     "send_accounts": true,
     "send_blocks": true,

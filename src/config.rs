@@ -2,7 +2,9 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub port: u16,
+    pub tcp_port: u16,
+    pub tcp_buffer_size: usize,
+    pub tcp_batch_size: usize,
 
     pub send_transactions: bool,
     pub send_accounts: bool,

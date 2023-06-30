@@ -95,7 +95,9 @@ impl GeyserPlugin for GeyserPluginHook {
         let cfg = Config::read(config_file).unwrap();
 
         let socket = TcpSender::default();
-        socket.bind(cfg.port, 1_000_000).unwrap();
+        socket
+            .bind(cfg.tcp_port, cfg.tcp_buffer_size, cfg.tcp_batch_size)
+            .unwrap();
 
         info!("[on_load] - socket created");
 
