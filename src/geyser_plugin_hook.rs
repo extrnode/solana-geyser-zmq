@@ -3,6 +3,7 @@ use crate::{
     errors::GeyserError,
     flatbuffer::{self, AccountUpdate, TransactionUpdate},
     metrics::Metrics,
+    sender::TcpSender,
 };
 use log::info;
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
@@ -12,10 +13,7 @@ use std::{
     sync::atomic::Ordering,
     time::Duration,
 };
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{sync::Arc, thread};
 
 const UNINIT: &str = "Geyser plugin not initialized yet!";
 
@@ -24,8 +22,7 @@ const UNINIT: &str = "Geyser plugin not initialized yet!";
 pub struct GeyserPluginHook(Option<Arc<Inner>>);
 
 pub struct Inner {
-    socket: Mutex<zmq::Socket>,
-    zmq_flag: i32,
+    socket: TcpSender,
     metrics: Arc<Metrics>,
     config: Config,
 }
@@ -44,17 +41,29 @@ impl GeyserPluginHook {
                     if let Some(e) = e.downcast_ref::<GeyserError>() {
                         // in case of zmq error do not fill the log, just inc the err counter
                         match e {
-                            GeyserError::ZmqSend => {
-                                inner.metrics.send_errs.fetch_add(1, Ordering::Relaxed);
+                            GeyserError::TcpSend(amount) => {
+                                inner
+                                    .metrics
+                                    .send_errs
+                                    .fetch_add(*amount, Ordering::Relaxed);
                             }
                             GeyserError::TxSerializeError => {
-                                inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
+                                inner.metrics.serialize_errs.fetch_add(1, Ordering::Relaxed);
+                            }
+                            GeyserError::SenderLockError => {
+                                inner
+                                    .metrics
+                                    .sender_lock_errs
+                                    .fetch_add(1, Ordering::Relaxed);
+                            }
+                            GeyserError::ConnLockError => {
+                                inner.metrics.conn_lock_errs.fetch_add(1, Ordering::Relaxed);
                             }
                         }
 
                         Ok(())
                     } else {
-                        inner.metrics.errs.fetch_add(1, Ordering::Relaxed);
+                        inner.metrics.untyped_errs.fetch_add(1, Ordering::Relaxed);
 
                         Err(GeyserPluginError::Custom(e.into()))
                     }
@@ -85,21 +94,13 @@ impl GeyserPlugin for GeyserPluginHook {
 
         let cfg = Config::read(config_file).unwrap();
 
-        let ctx = zmq::Context::new();
-        let socket = ctx.socket(zmq::PUB).unwrap();
-
-        socket.set_linger(0).unwrap();
-        let sndhwm = 1_000_000_000;
-        socket.set_sndhwm(sndhwm).unwrap();
-        socket
-            .bind(format!("tcp://*:{}", cfg.zmq_port).as_str())
-            .unwrap();
+        let socket = TcpSender::new(cfg.tcp_batch_max_bytes);
+        socket.bind(cfg.tcp_port, cfg.tcp_buffer_size).unwrap();
 
         info!("[on_load] - socket created");
 
         self.0 = Some(Arc::new(Inner {
-            socket: Mutex::new(socket),
-            zmq_flag: if cfg.zmq_no_wait { zmq::DONTWAIT } else { 0 },
+            socket,
             metrics: metrics.clone(),
             config: cfg,
         }));
@@ -169,12 +170,7 @@ impl GeyserPlugin for GeyserPluginHook {
                     }
                 };
                 let data = flatbuffer::serialize_account(&account_update);
-                inner
-                    .socket
-                    .lock()
-                    .unwrap()
-                    .send(data, inner.zmq_flag)
-                    .map_err(|_| GeyserError::ZmqSend)?;
+                inner.socket.publish(data)?;
 
                 Ok(())
             },
@@ -198,12 +194,7 @@ impl GeyserPlugin for GeyserPluginHook {
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
                 let data = flatbuffer::serialize_slot(slot, parent, status);
-                inner
-                    .socket
-                    .lock()
-                    .unwrap()
-                    .send(data, inner.zmq_flag)
-                    .map_err(|_| GeyserError::ZmqSend)?;
+                inner.socket.publish(data)?;
 
                 Ok(())
             },
@@ -226,13 +217,7 @@ impl GeyserPlugin for GeyserPluginHook {
                 }
 
                 let data = flatbuffer::serialize_transaction(&tx_update)?;
-
-                inner
-                    .socket
-                    .lock()
-                    .unwrap()
-                    .send(data, inner.zmq_flag)
-                    .map_err(|_| GeyserError::ZmqSend)?;
+                inner.socket.publish(data)?;
 
                 Ok(())
             },
@@ -250,12 +235,7 @@ impl GeyserPlugin for GeyserPluginHook {
                 match blockinfo {
                     ReplicaBlockInfoVersions::V0_0_1(block) => {
                         let data = flatbuffer::serialize_block(block);
-                        inner
-                            .socket
-                            .lock()
-                            .unwrap()
-                            .send(data, inner.zmq_flag)
-                            .map_err(|_| GeyserError::ZmqSend)?;
+                        inner.socket.publish(data)?;
                     }
                 };
 
