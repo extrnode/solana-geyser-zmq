@@ -1,7 +1,6 @@
 use log::{error, info};
 use std::io::{self, Write};
 use std::net::TcpListener;
-use std::sync::atomic::AtomicUsize;
 use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
@@ -11,11 +10,40 @@ use crate::errors::GeyserError;
 const DEFAULT_VECTOR_PREALLOC: usize = 1024 * 1024;
 const HEADER_BYTE_SIZE: usize = 4;
 
+pub struct TcpBuffer {
+    data: Vec<Vec<u8>>,
+    total_bytesize: usize,
+}
+
+impl TcpBuffer {
+    pub fn append(&mut self, msg: Vec<u8>) {
+        let mut result = Vec::with_capacity(HEADER_BYTE_SIZE + msg.len());
+        result.extend_from_slice(&(msg.len() as u32).to_le_bytes());
+        result.extend_from_slice(&msg);
+
+        self.total_bytesize += result.len();
+        self.data.push(result);
+    }
+
+    pub fn flush_data(&mut self) -> Vec<u8> {
+        let mut batch = Vec::with_capacity(HEADER_BYTE_SIZE + self.total_bytesize);
+        batch.extend_from_slice(&(self.total_bytesize as u32).to_le_bytes());
+        self.data.iter().for_each(|msg| {
+            batch.extend_from_slice(msg);
+        });
+
+        // Clear buffers
+        self.data.clear();
+        self.total_bytesize = 0;
+
+        batch
+    }
+}
+
 pub struct TcpSender {
     batch_max_bytes: usize,
     conns: Arc<RwLock<Vec<SyncSender<Vec<u8>>>>>,
-    buffer: Mutex<Vec<Vec<u8>>>,
-    total_bytesize: AtomicUsize,
+    buffer: Mutex<TcpBuffer>,
 }
 
 impl TcpSender {
@@ -23,42 +51,26 @@ impl TcpSender {
         TcpSender {
             batch_max_bytes,
             conns: Arc::new(RwLock::new(Vec::new())),
-            buffer: Mutex::new(Vec::with_capacity(DEFAULT_VECTOR_PREALLOC)),
-            total_bytesize: AtomicUsize::new(0),
+            buffer: Mutex::new(TcpBuffer {
+                data: Vec::with_capacity(DEFAULT_VECTOR_PREALLOC),
+                total_bytesize: 0,
+            }),
         }
     }
 
     pub fn publish(&self, message: Vec<u8>) -> Result<(), GeyserError> {
-        let message = pack_message(message);
-        let message_len = message.len();
-
         let mut buffer = self
             .buffer
             .lock()
             .map_err(|_| GeyserError::SenderLockError)?;
 
-        buffer.push(message);
+        buffer.append(message);
 
-        let total_bytesize = self
-            .total_bytesize
-            .fetch_add(message_len, std::sync::atomic::Ordering::Relaxed);
-
-        if total_bytesize < self.batch_max_bytes {
+        if buffer.total_bytesize < self.batch_max_bytes {
             return Ok(());
         }
 
-        let mut batch = Vec::with_capacity(total_bytesize + HEADER_BYTE_SIZE);
-        batch.extend_from_slice(&(total_bytesize as u32).to_le_bytes());
-        buffer.iter().for_each(|msg| {
-            batch.extend_from_slice(msg);
-        });
-
-        // Clear buffers
-        buffer.clear();
-        self.total_bytesize
-            .store(0, std::sync::atomic::Ordering::Relaxed);
-
-        self.publish_batch(batch)
+        self.publish_batch(buffer.flush_data())
     }
 
     pub fn publish_batch(&self, batch: Vec<u8>) -> Result<(), GeyserError> {
@@ -147,12 +159,4 @@ impl TcpSender {
         conns.push(conn);
         Ok(())
     }
-}
-
-fn pack_message(msg: Vec<u8>) -> Vec<u8> {
-    let mut result = Vec::with_capacity(HEADER_BYTE_SIZE + msg.len());
-    result.extend_from_slice(&(msg.len() as u32).to_le_bytes());
-    result.extend_from_slice(&msg);
-
-    result
 }

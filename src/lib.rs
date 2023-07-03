@@ -1,5 +1,3 @@
-#![feature(test)]
-extern crate test;
 mod config;
 mod entrypoint;
 mod errors;
