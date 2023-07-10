@@ -3,9 +3,9 @@ include "common.fbs";
 namespace AccountInfo;
 
 table AccountInfo {
-  pubkey: Common.Pubkey;
+  pubkey: string;
   lamports: uint64;
-  owner: Common.Pubkey;
+  owner: string;
   executable: bool;
   rent_epoch: uint64;
   data: [uint8];

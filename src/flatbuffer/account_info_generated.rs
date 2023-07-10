@@ -7,7 +7,7 @@ extern crate flatbuffers;
 #[allow(unused_imports, dead_code)]
 pub mod account_info {
 
-    use crate::flatbuffer::common_generated::common::{Pubkey, Reward, Signature};
+    use crate::flatbuffer::common_generated::common::Reward;
     use core::cmp::Ordering;
     use core::mem;
 
@@ -71,13 +71,13 @@ pub mod account_info {
         }
 
         #[inline]
-        pub fn pubkey(&self) -> Option<Pubkey<'a>> {
+        pub fn pubkey(&self) -> Option<&'a str> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab
-                    .get::<flatbuffers::ForwardsUOffset<Pubkey>>(AccountInfo::VT_PUBKEY, None)
+                    .get::<flatbuffers::ForwardsUOffset<&str>>(AccountInfo::VT_PUBKEY, None)
             }
         }
         #[inline]
@@ -92,13 +92,13 @@ pub mod account_info {
             }
         }
         #[inline]
-        pub fn owner(&self) -> Option<Pubkey<'a>> {
+        pub fn owner(&self) -> Option<&'a str> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab
-                    .get::<flatbuffers::ForwardsUOffset<Pubkey>>(AccountInfo::VT_OWNER, None)
+                    .get::<flatbuffers::ForwardsUOffset<&str>>(AccountInfo::VT_OWNER, None)
             }
         }
         #[inline]
@@ -175,17 +175,13 @@ pub mod account_info {
         ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<Pubkey>>(
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
                     "pubkey",
                     Self::VT_PUBKEY,
                     false,
                 )?
                 .visit_field::<u64>("lamports", Self::VT_LAMPORTS, false)?
-                .visit_field::<flatbuffers::ForwardsUOffset<Pubkey>>(
-                    "owner",
-                    Self::VT_OWNER,
-                    false,
-                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>("owner", Self::VT_OWNER, false)?
                 .visit_field::<bool>("executable", Self::VT_EXECUTABLE, false)?
                 .visit_field::<u64>("rent_epoch", Self::VT_RENT_EPOCH, false)?
                 .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
@@ -201,9 +197,9 @@ pub mod account_info {
         }
     }
     pub struct AccountInfoArgs<'a> {
-        pub pubkey: Option<flatbuffers::WIPOffset<Pubkey<'a>>>,
+        pub pubkey: Option<flatbuffers::WIPOffset<&'a str>>,
         pub lamports: u64,
-        pub owner: Option<flatbuffers::WIPOffset<Pubkey<'a>>>,
+        pub owner: Option<flatbuffers::WIPOffset<&'a str>>,
         pub executable: bool,
         pub rent_epoch: u64,
         pub data: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
@@ -234,9 +230,9 @@ pub mod account_info {
     }
     impl<'a: 'b, 'b> AccountInfoBuilder<'a, 'b> {
         #[inline]
-        pub fn add_pubkey(&mut self, pubkey: flatbuffers::WIPOffset<Pubkey<'b>>) {
+        pub fn add_pubkey(&mut self, pubkey: flatbuffers::WIPOffset<&'b str>) {
             self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<Pubkey>>(AccountInfo::VT_PUBKEY, pubkey);
+                .push_slot_always::<flatbuffers::WIPOffset<_>>(AccountInfo::VT_PUBKEY, pubkey);
         }
         #[inline]
         pub fn add_lamports(&mut self, lamports: u64) {
@@ -244,9 +240,9 @@ pub mod account_info {
                 .push_slot::<u64>(AccountInfo::VT_LAMPORTS, lamports, 0);
         }
         #[inline]
-        pub fn add_owner(&mut self, owner: flatbuffers::WIPOffset<Pubkey<'b>>) {
+        pub fn add_owner(&mut self, owner: flatbuffers::WIPOffset<&'b str>) {
             self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<Pubkey>>(AccountInfo::VT_OWNER, owner);
+                .push_slot_always::<flatbuffers::WIPOffset<_>>(AccountInfo::VT_OWNER, owner);
         }
         #[inline]
         pub fn add_executable(&mut self, executable: bool) {

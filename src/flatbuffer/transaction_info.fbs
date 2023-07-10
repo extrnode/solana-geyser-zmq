@@ -3,13 +3,13 @@ include "common.fbs";
 namespace TransactionInfo;
 
 table TransactionInfo {
-  signature: Common.Signature;
+  signature: string;
   is_vote: bool;
   slot: uint64;
   transaction: [uint8];
   transaction_meta: TransactionStatusMeta;
   loaded_addresses: LoadedAddresses;
-  account_keys: [Common.Pubkey];
+  account_keys: [string];
   memo: string;
   return_data: TransactionReturnData;
   compute_units_consumed: uint64 = null;
@@ -17,8 +17,8 @@ table TransactionInfo {
 }
 
 table LoadedAddresses {
-  writable: [Common.Pubkey];
-  readonly: [Common.Pubkey];
+  writable: [string];
+  readonly: [string];
 }
 
 table CompiledInstruction {

@@ -880,15 +880,13 @@ pub mod transaction_info {
         }
 
         #[inline]
-        pub fn signature(&self) -> Option<Signature<'a>> {
+        pub fn signature(&self) -> Option<&'a str> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
-                self._tab.get::<flatbuffers::ForwardsUOffset<Signature>>(
-                    TransactionInfo::VT_SIGNATURE,
-                    None,
-                )
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<&str>>(TransactionInfo::VT_SIGNATURE, None)
             }
         }
         #[inline]
@@ -955,13 +953,13 @@ pub mod transaction_info {
         #[inline]
         pub fn account_keys(
             &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>,
                 >>(TransactionInfo::VT_ACCOUNT_KEYS, None)
             }
         }
@@ -1015,7 +1013,7 @@ pub mod transaction_info {
         ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<Signature>>(
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
                     "signature",
                     Self::VT_SIGNATURE,
                     false,
@@ -1038,7 +1036,7 @@ pub mod transaction_info {
                     false,
                 )?
                 .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>,
                 >>("account_keys", Self::VT_ACCOUNT_KEYS, false)?
                 .visit_field::<flatbuffers::ForwardsUOffset<&str>>("memo", Self::VT_MEMO, false)?
                 .visit_field::<flatbuffers::ForwardsUOffset<TransactionReturnData>>(
@@ -1057,16 +1055,14 @@ pub mod transaction_info {
         }
     }
     pub struct TransactionInfoArgs<'a> {
-        pub signature: Option<flatbuffers::WIPOffset<Signature<'a>>>,
+        pub signature: Option<flatbuffers::WIPOffset<&'a str>>,
         pub is_vote: bool,
         pub slot: u64,
         pub transaction: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
         pub transaction_meta: Option<flatbuffers::WIPOffset<TransactionStatusMeta<'a>>>,
         pub loaded_addresses: Option<flatbuffers::WIPOffset<LoadedAddresses<'a>>>,
         pub account_keys: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
-            >,
+            flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>,
         >,
         pub memo: Option<flatbuffers::WIPOffset<&'a str>>,
         pub return_data: Option<flatbuffers::WIPOffset<TransactionReturnData<'a>>>,
@@ -1098,12 +1094,11 @@ pub mod transaction_info {
     }
     impl<'a: 'b, 'b> TransactionInfoBuilder<'a, 'b> {
         #[inline]
-        pub fn add_signature(&mut self, signature: flatbuffers::WIPOffset<Signature<'b>>) {
-            self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<Signature>>(
-                    TransactionInfo::VT_SIGNATURE,
-                    signature,
-                );
+        pub fn add_signature(&mut self, signature: flatbuffers::WIPOffset<&'b str>) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionInfo::VT_SIGNATURE,
+                signature,
+            );
         }
         #[inline]
         pub fn add_is_vote(&mut self, is_vote: bool) {
@@ -1151,7 +1146,7 @@ pub mod transaction_info {
         pub fn add_account_keys(
             &mut self,
             account_keys: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<&'b str>>,
             >,
         ) {
             self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
@@ -1264,26 +1259,26 @@ pub mod transaction_info {
         #[inline]
         pub fn writable(
             &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>,
                 >>(LoadedAddresses::VT_WRITABLE, None)
             }
         }
         #[inline]
         pub fn readonly(
             &self,
-        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>> {
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab.get::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey>>,
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>,
                 >>(LoadedAddresses::VT_READONLY, None)
             }
         }
@@ -1298,10 +1293,10 @@ pub mod transaction_info {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
                 .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>,
                 >>("writable", Self::VT_WRITABLE, false)?
                 .visit_field::<flatbuffers::ForwardsUOffset<
-                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Pubkey>>,
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>,
                 >>("readonly", Self::VT_READONLY, false)?
                 .finish();
             Ok(())
@@ -1309,14 +1304,10 @@ pub mod transaction_info {
     }
     pub struct LoadedAddressesArgs<'a> {
         pub writable: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
-            >,
+            flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>,
         >,
         pub readonly: Option<
-            flatbuffers::WIPOffset<
-                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Pubkey<'a>>>,
-            >,
+            flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>,
         >,
     }
     impl<'a> Default for LoadedAddressesArgs<'a> {
@@ -1338,7 +1329,7 @@ pub mod transaction_info {
         pub fn add_writable(
             &mut self,
             writable: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<&'b str>>,
             >,
         ) {
             self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
@@ -1350,7 +1341,7 @@ pub mod transaction_info {
         pub fn add_readonly(
             &mut self,
             readonly: flatbuffers::WIPOffset<
-                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<Pubkey<'b>>>,
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<&'b str>>,
             >,
         ) {
             self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
