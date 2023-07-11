@@ -836,6 +836,9 @@ pub mod transaction_info {
         pub const VT_RETURN_DATA: flatbuffers::VOffsetT = 20;
         pub const VT_COMPUTE_UNITS_CONSUMED: flatbuffers::VOffsetT = 22;
         pub const VT_INDEX: flatbuffers::VOffsetT = 24;
+        pub const VT_SIGNATURE_STRING: flatbuffers::VOffsetT = 26;
+        pub const VT_ACCOUNT_KEYS_STRING: flatbuffers::VOffsetT = 28;
+        pub const VT_LOADED_ADDRESSES_STRING: flatbuffers::VOffsetT = 30;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -854,6 +857,15 @@ pub mod transaction_info {
                 builder.add_compute_units_consumed(x);
             }
             builder.add_slot(args.slot);
+            if let Some(x) = args.loaded_addresses_string {
+                builder.add_loaded_addresses_string(x);
+            }
+            if let Some(x) = args.account_keys_string {
+                builder.add_account_keys_string(x);
+            }
+            if let Some(x) = args.signature_string {
+                builder.add_signature_string(x);
+            }
             if let Some(x) = args.return_data {
                 builder.add_return_data(x);
             }
@@ -1005,6 +1017,44 @@ pub mod transaction_info {
             // which contains a valid value in this slot
             unsafe { self._tab.get::<u64>(TransactionInfo::VT_INDEX, None) }
         }
+        #[inline]
+        pub fn signature_string(&self) -> Option<&'a str> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(
+                    TransactionInfo::VT_SIGNATURE_STRING,
+                    None,
+                )
+            }
+        }
+        #[inline]
+        pub fn account_keys_string(
+            &self,
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>,
+                >>(TransactionInfo::VT_ACCOUNT_KEYS_STRING, None)
+            }
+        }
+        #[inline]
+        pub fn loaded_addresses_string(&self) -> Option<LoadedAddressesString<'a>> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<LoadedAddressesString>>(
+                        TransactionInfo::VT_LOADED_ADDRESSES_STRING,
+                        None,
+                    )
+            }
+        }
     }
 
     impl flatbuffers::Verifiable for TransactionInfo<'_> {
@@ -1052,6 +1102,19 @@ pub mod transaction_info {
                     false,
                 )?
                 .visit_field::<u64>("index", Self::VT_INDEX, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
+                    "signature_string",
+                    Self::VT_SIGNATURE_STRING,
+                    false,
+                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>,
+                >>("account_keys_string", Self::VT_ACCOUNT_KEYS_STRING, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<LoadedAddressesString>>(
+                    "loaded_addresses_string",
+                    Self::VT_LOADED_ADDRESSES_STRING,
+                    false,
+                )?
                 .finish();
             Ok(())
         }
@@ -1072,6 +1135,11 @@ pub mod transaction_info {
         pub return_data: Option<flatbuffers::WIPOffset<TransactionReturnData<'a>>>,
         pub compute_units_consumed: Option<u64>,
         pub index: Option<u64>,
+        pub signature_string: Option<flatbuffers::WIPOffset<&'a str>>,
+        pub account_keys_string: Option<
+            flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>,
+        >,
+        pub loaded_addresses_string: Option<flatbuffers::WIPOffset<LoadedAddressesString<'a>>>,
     }
     impl<'a> Default for TransactionInfoArgs<'a> {
         #[inline]
@@ -1088,6 +1156,9 @@ pub mod transaction_info {
                 return_data: None,
                 compute_units_consumed: None,
                 index: None,
+                signature_string: None,
+                account_keys_string: None,
+                loaded_addresses_string: None,
             }
         }
     }
@@ -1188,6 +1259,36 @@ pub mod transaction_info {
                 .push_slot_always::<u64>(TransactionInfo::VT_INDEX, index);
         }
         #[inline]
+        pub fn add_signature_string(&mut self, signature_string: flatbuffers::WIPOffset<&'b str>) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionInfo::VT_SIGNATURE_STRING,
+                signature_string,
+            );
+        }
+        #[inline]
+        pub fn add_account_keys_string(
+            &mut self,
+            account_keys_string: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<&'b str>>,
+            >,
+        ) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionInfo::VT_ACCOUNT_KEYS_STRING,
+                account_keys_string,
+            );
+        }
+        #[inline]
+        pub fn add_loaded_addresses_string(
+            &mut self,
+            loaded_addresses_string: flatbuffers::WIPOffset<LoadedAddressesString<'b>>,
+        ) {
+            self.fbb_
+                .push_slot_always::<flatbuffers::WIPOffset<LoadedAddressesString>>(
+                    TransactionInfo::VT_LOADED_ADDRESSES_STRING,
+                    loaded_addresses_string,
+                );
+        }
+        #[inline]
         pub fn new(
             _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
         ) -> TransactionInfoBuilder<'a, 'b> {
@@ -1218,6 +1319,9 @@ pub mod transaction_info {
             ds.field("return_data", &self.return_data());
             ds.field("compute_units_consumed", &self.compute_units_consumed());
             ds.field("index", &self.index());
+            ds.field("signature_string", &self.signature_string());
+            ds.field("account_keys_string", &self.account_keys_string());
+            ds.field("loaded_addresses_string", &self.loaded_addresses_string());
             ds.finish()
         }
     }
@@ -1378,6 +1482,164 @@ pub mod transaction_info {
     impl core::fmt::Debug for LoadedAddresses<'_> {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
             let mut ds = f.debug_struct("LoadedAddresses");
+            ds.field("writable", &self.writable());
+            ds.field("readonly", &self.readonly());
+            ds.finish()
+        }
+    }
+    pub enum LoadedAddressesStringOffset {}
+    #[derive(Copy, Clone, PartialEq)]
+
+    pub struct LoadedAddressesString<'a> {
+        pub _tab: flatbuffers::Table<'a>,
+    }
+
+    impl<'a> flatbuffers::Follow<'a> for LoadedAddressesString<'a> {
+        type Inner = LoadedAddressesString<'a>;
+        #[inline]
+        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+            Self {
+                _tab: flatbuffers::Table::new(buf, loc),
+            }
+        }
+    }
+
+    impl<'a> LoadedAddressesString<'a> {
+        pub const VT_WRITABLE: flatbuffers::VOffsetT = 4;
+        pub const VT_READONLY: flatbuffers::VOffsetT = 6;
+
+        #[inline]
+        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+            LoadedAddressesString { _tab: table }
+        }
+        #[allow(unused_mut)]
+        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+            args: &'args LoadedAddressesStringArgs<'args>,
+        ) -> flatbuffers::WIPOffset<LoadedAddressesString<'bldr>> {
+            let mut builder = LoadedAddressesStringBuilder::new(_fbb);
+            if let Some(x) = args.readonly {
+                builder.add_readonly(x);
+            }
+            if let Some(x) = args.writable {
+                builder.add_writable(x);
+            }
+            builder.finish()
+        }
+
+        #[inline]
+        pub fn writable(
+            &self,
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>,
+                >>(LoadedAddressesString::VT_WRITABLE, None)
+            }
+        }
+        #[inline]
+        pub fn readonly(
+            &self,
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>,
+                >>(LoadedAddressesString::VT_READONLY, None)
+            }
+        }
+    }
+
+    impl flatbuffers::Verifiable for LoadedAddressesString<'_> {
+        #[inline]
+        fn run_verifier(
+            v: &mut flatbuffers::Verifier,
+            pos: usize,
+        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+            use self::flatbuffers::Verifiable;
+            v.visit_table(pos)?
+                .visit_field::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>,
+                >>("writable", Self::VT_WRITABLE, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>,
+                >>("readonly", Self::VT_READONLY, false)?
+                .finish();
+            Ok(())
+        }
+    }
+    pub struct LoadedAddressesStringArgs<'a> {
+        pub writable: Option<
+            flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>,
+        >,
+        pub readonly: Option<
+            flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>,
+        >,
+    }
+    impl<'a> Default for LoadedAddressesStringArgs<'a> {
+        #[inline]
+        fn default() -> Self {
+            LoadedAddressesStringArgs {
+                writable: None,
+                readonly: None,
+            }
+        }
+    }
+
+    pub struct LoadedAddressesStringBuilder<'a: 'b, 'b> {
+        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+    }
+    impl<'a: 'b, 'b> LoadedAddressesStringBuilder<'a, 'b> {
+        #[inline]
+        pub fn add_writable(
+            &mut self,
+            writable: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<&'b str>>,
+            >,
+        ) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                LoadedAddressesString::VT_WRITABLE,
+                writable,
+            );
+        }
+        #[inline]
+        pub fn add_readonly(
+            &mut self,
+            readonly: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<&'b str>>,
+            >,
+        ) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                LoadedAddressesString::VT_READONLY,
+                readonly,
+            );
+        }
+        #[inline]
+        pub fn new(
+            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        ) -> LoadedAddressesStringBuilder<'a, 'b> {
+            let start = _fbb.start_table();
+            LoadedAddressesStringBuilder {
+                fbb_: _fbb,
+                start_: start,
+            }
+        }
+        #[inline]
+        pub fn finish(self) -> flatbuffers::WIPOffset<LoadedAddressesString<'a>> {
+            let o = self.fbb_.end_table(self.start_);
+            flatbuffers::WIPOffset::new(o.value())
+        }
+    }
+
+    impl core::fmt::Debug for LoadedAddressesString<'_> {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            let mut ds = f.debug_struct("LoadedAddressesString");
             ds.field("writable", &self.writable());
             ds.field("readonly", &self.readonly());
             ds.finish()

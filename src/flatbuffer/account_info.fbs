@@ -12,6 +12,8 @@ table AccountInfo {
   write_version: uint64;
   slot: uint64;
   is_startup: bool;
+  pubkey_string: string;
+  owner_string: string;
 }
 
 root_type AccountInfo;

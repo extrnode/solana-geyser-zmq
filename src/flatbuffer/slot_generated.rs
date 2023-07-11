@@ -11,8 +11,6 @@ pub mod slot {
     use core::mem;
 
     extern crate flatbuffers;
-    use self::flatbuffers::{EndianScalar, Follow};
-
     #[deprecated(
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
