@@ -1,18 +1,18 @@
 //! FlatBuffer serialization module
 use crate::flatbuffer::transaction_info_generated::transaction_info::{
-    TransactionReturnData, TransactionReturnDataArgs,
+    LoadedAddressesString, LoadedAddressesStringArgs, TransactionReturnData,
+    TransactionReturnDataArgs,
 };
 use crate::{
     errors::GeyserError,
     flatbuffer::transaction_info_generated::transaction_info::{
         CompiledInstruction, CompiledInstructionArgs, InnerByte, InnerByteArgs, InnerInstructions,
         InnerInstructionsArgs, InstructionError, InstructionErrorArgs, InstructionErrorData,
-        InstructionErrorDataArgs, InstructionErrorInnerData, InstructionErrorType, LoadedAddresses,
-        LoadedAddressesArgs, StringValue, StringValueArgs, TransactionError, TransactionErrorArgs,
-        TransactionErrorData, TransactionErrorType, TransactionInfo, TransactionInfoArgs,
-        TransactionStatusMeta, TransactionStatusMetaArgs, TransactionTokenBalance,
-        TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs, Uint32Value,
-        Uint32ValueArgs,
+        InstructionErrorDataArgs, InstructionErrorInnerData, InstructionErrorType, StringValue,
+        StringValueArgs, TransactionError, TransactionErrorArgs, TransactionErrorData,
+        TransactionErrorType, TransactionInfo, TransactionInfoArgs, TransactionStatusMeta,
+        TransactionStatusMetaArgs, TransactionTokenBalance, TransactionTokenBalanceArgs,
+        UiTokenAmount, UiTokenAmountArgs, Uint32Value, Uint32ValueArgs,
     },
 };
 use account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
@@ -74,21 +74,23 @@ pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
 
     let data = builder.create_vector(account.data.as_ref());
 
-    let pubkey = Some(builder.create_string(account.key.to_string().as_ref()));
-    let owner = Some(builder.create_string(account.owner.to_string().as_ref()));
+    let pubkey_string = Some(builder.create_string(account.key.to_string().as_ref()));
+    let owner_string = Some(builder.create_string(account.owner.to_string().as_ref()));
 
     let account_info = AccountInfo::create(
         &mut builder,
         &AccountInfoArgs {
-            pubkey,
+            pubkey_string,
             lamports: account.lamports,
-            owner,
+            owner_string,
             executable: account.executable,
             rent_epoch: account.rent_epoch,
             data: Some(data),
             write_version: account.write_version,
             slot: account.slot,
             is_startup: account.is_startup,
+            pubkey: None,
+            owner: None,
         },
     );
 
@@ -194,7 +196,7 @@ pub struct TransactionUpdate {
 pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>, GeyserError> {
     let mut builder = FlatBufferBuilder::new();
 
-    let loaded_addresses = match &transaction.transaction.message() {
+    let loaded_addresses_string = match &transaction.transaction.message() {
         solana_sdk::message::SanitizedMessage::Legacy(_) => None,
         solana_sdk::message::SanitizedMessage::V0(loaded_message_v0) => {
             let writable = loaded_message_v0
@@ -213,8 +215,10 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                 .collect::<Vec<_>>();
             let readonly = Some(builder.create_vector(readonly.as_ref()));
 
-            let loaded_addresses =
-                LoadedAddresses::create(&mut builder, &LoadedAddressesArgs { writable, readonly });
+            let loaded_addresses = LoadedAddressesString::create(
+                &mut builder,
+                &LoadedAddressesStringArgs { writable, readonly },
+            );
 
             Some(loaded_addresses)
         }
@@ -1270,7 +1274,7 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
         },
     ));
 
-    let signature = Some(builder.create_string(transaction.signature.to_string().as_str()));
+    let signature_string = Some(builder.create_string(transaction.signature.to_string().as_str()));
     let tx = Some(builder.create_vector(&tx));
     let memo = solana_transaction_status::extract_memos::extract_and_fmt_memos(
         transaction.transaction.message(),
@@ -1283,7 +1287,7 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
         .iter()
         .map(|key| builder.create_string(key.to_string().as_str()))
         .collect::<Vec<_>>();
-    let account_keys = Some(builder.create_vector(account_keys.as_ref()));
+    let account_keys_string = Some(builder.create_vector(account_keys.as_ref()));
 
     let return_data = transaction
         .transaction_meta
@@ -1314,17 +1318,20 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
     let transaction_info = TransactionInfo::create(
         &mut builder,
         &TransactionInfoArgs {
-            signature,
+            signature_string,
             is_vote: transaction.is_vote,
             slot: transaction.slot,
             transaction: tx,
             transaction_meta,
-            loaded_addresses,
-            account_keys,
+            loaded_addresses_string,
+            account_keys_string,
             memo,
             return_data,
             compute_units_consumed: transaction.transaction_meta.compute_units_consumed,
             index: transaction.index.map(|index| index as u64),
+            signature: None,
+            account_keys: None,
+            loaded_addresses: None,
         },
     );
     builder.finish(transaction_info, None);

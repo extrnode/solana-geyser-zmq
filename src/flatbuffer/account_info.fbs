@@ -3,15 +3,17 @@ include "common.fbs";
 namespace AccountInfo;
 
 table AccountInfo {
-  pubkey: string;
+  pubkey: Common.Pubkey;
   lamports: uint64;
-  owner: string;
+  owner: Common.Pubkey;
   executable: bool;
   rent_epoch: uint64;
   data: [uint8];
   write_version: uint64;
   slot: uint64;
   is_startup: bool;
+  pubkey_string: string;
+  owner_string: string;
 }
 
 root_type AccountInfo;

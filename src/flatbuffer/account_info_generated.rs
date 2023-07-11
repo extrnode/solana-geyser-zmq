@@ -7,7 +7,7 @@ extern crate flatbuffers;
 #[allow(unused_imports, dead_code)]
 pub mod account_info {
 
-    use crate::flatbuffer::common_generated::common::Reward;
+    use crate::flatbuffer::common_generated::common::*;
     use core::cmp::Ordering;
     use core::mem;
 
@@ -41,6 +41,8 @@ pub mod account_info {
         pub const VT_WRITE_VERSION: flatbuffers::VOffsetT = 16;
         pub const VT_SLOT: flatbuffers::VOffsetT = 18;
         pub const VT_IS_STARTUP: flatbuffers::VOffsetT = 20;
+        pub const VT_PUBKEY_STRING: flatbuffers::VOffsetT = 22;
+        pub const VT_OWNER_STRING: flatbuffers::VOffsetT = 24;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -56,6 +58,12 @@ pub mod account_info {
             builder.add_write_version(args.write_version);
             builder.add_rent_epoch(args.rent_epoch);
             builder.add_lamports(args.lamports);
+            if let Some(x) = args.owner_string {
+                builder.add_owner_string(x);
+            }
+            if let Some(x) = args.pubkey_string {
+                builder.add_pubkey_string(x);
+            }
             if let Some(x) = args.data {
                 builder.add_data(x);
             }
@@ -71,13 +79,13 @@ pub mod account_info {
         }
 
         #[inline]
-        pub fn pubkey(&self) -> Option<&'a str> {
+        pub fn pubkey(&self) -> Option<Pubkey<'a>> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab
-                    .get::<flatbuffers::ForwardsUOffset<&str>>(AccountInfo::VT_PUBKEY, None)
+                    .get::<flatbuffers::ForwardsUOffset<Pubkey>>(AccountInfo::VT_PUBKEY, None)
             }
         }
         #[inline]
@@ -92,13 +100,13 @@ pub mod account_info {
             }
         }
         #[inline]
-        pub fn owner(&self) -> Option<&'a str> {
+        pub fn owner(&self) -> Option<Pubkey<'a>> {
             // Safety:
             // Created from valid Table for this object
             // which contains a valid value in this slot
             unsafe {
                 self._tab
-                    .get::<flatbuffers::ForwardsUOffset<&str>>(AccountInfo::VT_OWNER, None)
+                    .get::<flatbuffers::ForwardsUOffset<Pubkey>>(AccountInfo::VT_OWNER, None)
             }
         }
         #[inline]
@@ -165,6 +173,26 @@ pub mod account_info {
                     .unwrap()
             }
         }
+        #[inline]
+        pub fn pubkey_string(&self) -> Option<&'a str> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<&str>>(AccountInfo::VT_PUBKEY_STRING, None)
+            }
+        }
+        #[inline]
+        pub fn owner_string(&self) -> Option<&'a str> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<&str>>(AccountInfo::VT_OWNER_STRING, None)
+            }
+        }
     }
 
     impl flatbuffers::Verifiable for AccountInfo<'_> {
@@ -175,13 +203,17 @@ pub mod account_info {
         ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
             use self::flatbuffers::Verifiable;
             v.visit_table(pos)?
-                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
+                .visit_field::<flatbuffers::ForwardsUOffset<Pubkey>>(
                     "pubkey",
                     Self::VT_PUBKEY,
                     false,
                 )?
                 .visit_field::<u64>("lamports", Self::VT_LAMPORTS, false)?
-                .visit_field::<flatbuffers::ForwardsUOffset<&str>>("owner", Self::VT_OWNER, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<Pubkey>>(
+                    "owner",
+                    Self::VT_OWNER,
+                    false,
+                )?
                 .visit_field::<bool>("executable", Self::VT_EXECUTABLE, false)?
                 .visit_field::<u64>("rent_epoch", Self::VT_RENT_EPOCH, false)?
                 .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(
@@ -192,20 +224,32 @@ pub mod account_info {
                 .visit_field::<u64>("write_version", Self::VT_WRITE_VERSION, false)?
                 .visit_field::<u64>("slot", Self::VT_SLOT, false)?
                 .visit_field::<bool>("is_startup", Self::VT_IS_STARTUP, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
+                    "pubkey_string",
+                    Self::VT_PUBKEY_STRING,
+                    false,
+                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
+                    "owner_string",
+                    Self::VT_OWNER_STRING,
+                    false,
+                )?
                 .finish();
             Ok(())
         }
     }
     pub struct AccountInfoArgs<'a> {
-        pub pubkey: Option<flatbuffers::WIPOffset<&'a str>>,
+        pub pubkey: Option<flatbuffers::WIPOffset<Pubkey<'a>>>,
         pub lamports: u64,
-        pub owner: Option<flatbuffers::WIPOffset<&'a str>>,
+        pub owner: Option<flatbuffers::WIPOffset<Pubkey<'a>>>,
         pub executable: bool,
         pub rent_epoch: u64,
         pub data: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
         pub write_version: u64,
         pub slot: u64,
         pub is_startup: bool,
+        pub pubkey_string: Option<flatbuffers::WIPOffset<&'a str>>,
+        pub owner_string: Option<flatbuffers::WIPOffset<&'a str>>,
     }
     impl<'a> Default for AccountInfoArgs<'a> {
         #[inline]
@@ -220,6 +264,8 @@ pub mod account_info {
                 write_version: 0,
                 slot: 0,
                 is_startup: false,
+                pubkey_string: None,
+                owner_string: None,
             }
         }
     }
@@ -230,9 +276,9 @@ pub mod account_info {
     }
     impl<'a: 'b, 'b> AccountInfoBuilder<'a, 'b> {
         #[inline]
-        pub fn add_pubkey(&mut self, pubkey: flatbuffers::WIPOffset<&'b str>) {
+        pub fn add_pubkey(&mut self, pubkey: flatbuffers::WIPOffset<Pubkey<'b>>) {
             self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<_>>(AccountInfo::VT_PUBKEY, pubkey);
+                .push_slot_always::<flatbuffers::WIPOffset<Pubkey>>(AccountInfo::VT_PUBKEY, pubkey);
         }
         #[inline]
         pub fn add_lamports(&mut self, lamports: u64) {
@@ -240,9 +286,9 @@ pub mod account_info {
                 .push_slot::<u64>(AccountInfo::VT_LAMPORTS, lamports, 0);
         }
         #[inline]
-        pub fn add_owner(&mut self, owner: flatbuffers::WIPOffset<&'b str>) {
+        pub fn add_owner(&mut self, owner: flatbuffers::WIPOffset<Pubkey<'b>>) {
             self.fbb_
-                .push_slot_always::<flatbuffers::WIPOffset<_>>(AccountInfo::VT_OWNER, owner);
+                .push_slot_always::<flatbuffers::WIPOffset<Pubkey>>(AccountInfo::VT_OWNER, owner);
         }
         #[inline]
         pub fn add_executable(&mut self, executable: bool) {
@@ -274,6 +320,20 @@ pub mod account_info {
                 .push_slot::<bool>(AccountInfo::VT_IS_STARTUP, is_startup, false);
         }
         #[inline]
+        pub fn add_pubkey_string(&mut self, pubkey_string: flatbuffers::WIPOffset<&'b str>) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                AccountInfo::VT_PUBKEY_STRING,
+                pubkey_string,
+            );
+        }
+        #[inline]
+        pub fn add_owner_string(&mut self, owner_string: flatbuffers::WIPOffset<&'b str>) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                AccountInfo::VT_OWNER_STRING,
+                owner_string,
+            );
+        }
+        #[inline]
         pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> AccountInfoBuilder<'a, 'b> {
             let start = _fbb.start_table();
             AccountInfoBuilder {
@@ -300,6 +360,8 @@ pub mod account_info {
             ds.field("write_version", &self.write_version());
             ds.field("slot", &self.slot());
             ds.field("is_startup", &self.is_startup());
+            ds.field("pubkey_string", &self.pubkey_string());
+            ds.field("owner_string", &self.owner_string());
             ds.finish()
         }
     }
