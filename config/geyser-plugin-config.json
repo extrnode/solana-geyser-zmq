@@ -6,5 +6,5 @@
     "send_transactions": true,
     "send_accounts": true,
     "send_blocks": true,
-    "skip_vote_txs": true
+    "skip_vote_txs": false
 }
