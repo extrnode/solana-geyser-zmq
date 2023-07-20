@@ -14,11 +14,19 @@ table TransactionInfo {
   return_data: TransactionReturnData;
   compute_units_consumed: uint64 = null;
   index: uint64 = null;
+  signature_string: string;
+  account_keys_string: [string];
+  loaded_addresses_string: LoadedAddressesString;
 }
 
 table LoadedAddresses {
   writable: [Common.Pubkey];
   readonly: [Common.Pubkey];
+}
+
+table LoadedAddressesString {
+  writable: [string];
+  readonly: [string];
 }
 
 table CompiledInstruction {

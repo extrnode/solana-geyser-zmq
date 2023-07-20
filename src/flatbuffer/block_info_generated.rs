@@ -6,9 +6,7 @@ extern crate flatbuffers;
 
 #[allow(unused_imports, dead_code)]
 pub mod block_info {
-    use crate::flatbuffer::common_generated::common::{Pubkey, Reward, Signature};
-    use core::cmp::Ordering;
-    use core::mem;
+    use crate::flatbuffer::common_generated::common::Reward;
 
     extern crate flatbuffers;
     use self::flatbuffers::{EndianScalar, Follow};

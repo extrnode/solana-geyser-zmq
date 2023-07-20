@@ -8,6 +8,7 @@ table Signature {
   key: [uint8];
 }
 
+
 enum RewardType: uint8 {
   None,
   Fee,
