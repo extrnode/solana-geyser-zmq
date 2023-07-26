@@ -318,7 +318,20 @@ impl TransactionUpdate {
                     return Ok(true);
                 }
             }
+
+            if program_id == solana_sdk::bpf_loader_upgradeable::id() {
+                let bpf_upgradeable_loader_instruction: solana_sdk::loader_upgradeable_instruction::UpgradeableLoaderInstruction =
+                    bincode::deserialize(&instruction.data)
+                        .map_err(|_| GeyserError::InstructionSerializeError)?;
+
+                if let solana_sdk::loader_upgradeable_instruction::UpgradeableLoaderInstruction::Write { .. } =
+                    bpf_upgradeable_loader_instruction
+                {
+                    return Ok(true);
+                }
+            }
         }
+
         Ok(false)
     }
 }
