@@ -17,7 +17,7 @@ use std::{sync::Arc, thread};
 
 const UNINIT: &str = "Geyser plugin not initialized yet!";
 const BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 0;
-const BPF_UPGRADEABLE_LOADER_INSTRUCTION_FIRST_BYTE: u8 = 1;
+const BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 1;
 
 /// This is the main object returned bu our dynamic library in entrypoint.rs
 #[derive(Default)]
@@ -315,7 +315,7 @@ impl TransactionUpdate {
         }
 
         if program_id == solana_sdk::bpf_loader_upgradeable::id() {
-            return instruction.data[0] == BPF_UPGRADEABLE_LOADER_INSTRUCTION_FIRST_BYTE;
+            return instruction.data[0] == BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE;
         }
 
         false
