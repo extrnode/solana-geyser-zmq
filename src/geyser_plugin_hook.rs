@@ -48,7 +48,10 @@ impl GeyserPluginHook {
                                     .fetch_add(*amount, Ordering::Relaxed);
                             }
                             GeyserError::TxSerializeError => {
-                                inner.metrics.serialize_errs.fetch_add(1, Ordering::Relaxed);
+                                inner
+                                    .metrics
+                                    .tx_serialize_errs
+                                    .fetch_add(1, Ordering::Relaxed);
                             }
                             GeyserError::SenderLockError => {
                                 inner
@@ -58,6 +61,12 @@ impl GeyserPluginHook {
                             }
                             GeyserError::ConnLockError => {
                                 inner.metrics.conn_lock_errs.fetch_add(1, Ordering::Relaxed);
+                            }
+                            GeyserError::InstructionSerializeError => {
+                                inner
+                                    .metrics
+                                    .instruction_serialize_errs
+                                    .fetch_add(1, Ordering::Relaxed);
                             }
                         }
 
@@ -215,6 +224,9 @@ impl GeyserPlugin for GeyserPluginHook {
                 if tx_update.is_vote && inner.config.skip_vote_txs {
                     return Ok(());
                 }
+                if tx_update.is_deploy_tx()? {
+                    return Ok(());
+                }
 
                 let data = flatbuffer::serialize_transaction(&tx_update)?;
                 inner.socket.publish(data)?;
@@ -288,5 +300,25 @@ impl TransactionUpdate {
                 index: Some(tx.index),
             },
         }
+    }
+
+    fn is_deploy_tx(&self) -> std::result::Result<bool, GeyserError> {
+        let account_keys = self.transaction.message().account_keys();
+
+        for instruction in self.transaction.message().instructions().iter() {
+            let program_id = account_keys[instruction.program_id_index as usize];
+            if program_id == solana_sdk::bpf_loader::id() {
+                let bpf_loader_instruction: solana_sdk::loader_instruction::LoaderInstruction =
+                    bincode::deserialize(&instruction.data)
+                        .map_err(|_| GeyserError::InstructionSerializeError)?;
+
+                if let solana_sdk::loader_instruction::LoaderInstruction::Write { .. } =
+                    bpf_loader_instruction
+                {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
     }
 }
