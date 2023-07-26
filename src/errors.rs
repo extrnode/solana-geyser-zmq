@@ -13,7 +13,4 @@ pub enum GeyserError {
 
     #[error("tx serialization error")]
     TxSerializeError,
-
-    #[error("instruction serialization error")]
-    InstructionSerializeError,
 }

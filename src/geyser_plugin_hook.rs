@@ -16,6 +16,8 @@ use std::{
 use std::{sync::Arc, thread};
 
 const UNINIT: &str = "Geyser plugin not initialized yet!";
+const BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 0;
+const BPF_UPGRADEABLE_LOADER_INSTRUCTION_FIRST_BYTE: u8 = 1;
 
 /// This is the main object returned bu our dynamic library in entrypoint.rs
 #[derive(Default)]
@@ -48,10 +50,7 @@ impl GeyserPluginHook {
                                     .fetch_add(*amount, Ordering::Relaxed);
                             }
                             GeyserError::TxSerializeError => {
-                                inner
-                                    .metrics
-                                    .tx_serialize_errs
-                                    .fetch_add(1, Ordering::Relaxed);
+                                inner.metrics.serialize_errs.fetch_add(1, Ordering::Relaxed);
                             }
                             GeyserError::SenderLockError => {
                                 inner
@@ -61,12 +60,6 @@ impl GeyserPluginHook {
                             }
                             GeyserError::ConnLockError => {
                                 inner.metrics.conn_lock_errs.fetch_add(1, Ordering::Relaxed);
-                            }
-                            GeyserError::InstructionSerializeError => {
-                                inner
-                                    .metrics
-                                    .instruction_serialize_errs
-                                    .fetch_add(1, Ordering::Relaxed);
                             }
                         }
 
@@ -224,7 +217,7 @@ impl GeyserPlugin for GeyserPluginHook {
                 if tx_update.is_vote && inner.config.skip_vote_txs {
                     return Ok(());
                 }
-                if tx_update.is_deploy_tx()? {
+                if tx_update.is_deploy_tx() {
                     return Ok(());
                 }
 
@@ -302,36 +295,29 @@ impl TransactionUpdate {
         }
     }
 
-    fn is_deploy_tx(&self) -> std::result::Result<bool, GeyserError> {
-        let account_keys = self.transaction.message().account_keys();
-
-        for instruction in self.transaction.message().instructions().iter() {
-            let program_id = account_keys[instruction.program_id_index as usize];
-            if program_id == solana_sdk::bpf_loader::id() {
-                let bpf_loader_instruction: solana_sdk::loader_instruction::LoaderInstruction =
-                    bincode::deserialize(&instruction.data)
-                        .map_err(|_| GeyserError::InstructionSerializeError)?;
-
-                if let solana_sdk::loader_instruction::LoaderInstruction::Write { .. } =
-                    bpf_loader_instruction
-                {
-                    return Ok(true);
-                }
-            }
-
-            if program_id == solana_sdk::bpf_loader_upgradeable::id() {
-                let bpf_upgradeable_loader_instruction: solana_sdk::loader_upgradeable_instruction::UpgradeableLoaderInstruction =
-                    bincode::deserialize(&instruction.data)
-                        .map_err(|_| GeyserError::InstructionSerializeError)?;
-
-                if let solana_sdk::loader_upgradeable_instruction::UpgradeableLoaderInstruction::Write { .. } =
-                    bpf_upgradeable_loader_instruction
-                {
-                    return Ok(true);
-                }
-            }
+    fn is_deploy_tx(&self) -> bool {
+        if self.transaction.message().instructions().len() != 1 {
+            return false;
+        }
+        let instruction = self.transaction.message().instructions().iter().next();
+        if instruction.is_none() {
+            return false;
+        }
+        let instruction = instruction.unwrap();
+        if instruction.data.is_empty() {
+            return false;
         }
 
-        Ok(false)
+        let account_keys = self.transaction.message().account_keys();
+        let program_id = account_keys[instruction.program_id_index as usize];
+        if program_id == solana_sdk::bpf_loader::id() {
+            return instruction.data[0] == BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE;
+        }
+
+        if program_id == solana_sdk::bpf_loader_upgradeable::id() {
+            return instruction.data[0] == BPF_UPGRADEABLE_LOADER_INSTRUCTION_FIRST_BYTE;
+        }
+
+        false
     }
 }
