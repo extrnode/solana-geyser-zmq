@@ -214,10 +214,12 @@ impl GeyserPlugin for GeyserPluginHook {
             || GeyserPluginError::TransactionUpdateError { msg: UNINIT.into() },
             |inner| {
                 let tx_update = TransactionUpdate::from_transaction(transaction, slot);
-                if tx_update.is_vote && inner.config.skip_vote_txs {
+
+                if inner.config.skip_vote_txs && tx_update.is_vote {
                     return Ok(());
                 }
-                if tx_update.is_deploy_tx() {
+
+                if inner.config.skip_deploy_txs && tx_update.is_deploy_tx() {
                     return Ok(());
                 }
 
@@ -299,10 +301,12 @@ impl TransactionUpdate {
         if self.transaction.message().instructions().len() != 1 {
             return false;
         }
+
         let instruction = self.transaction.message().instructions().iter().next();
         if instruction.is_none() {
             return false;
         }
+
         let instruction = instruction.unwrap();
         if instruction.data.is_empty() {
             return false;
