@@ -16,6 +16,8 @@ use std::{
 use std::{sync::Arc, thread};
 
 const UNINIT: &str = "Geyser plugin not initialized yet!";
+const BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 0;
+const BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 1;
 
 /// This is the main object returned bu our dynamic library in entrypoint.rs
 #[derive(Default)]
@@ -212,7 +214,12 @@ impl GeyserPlugin for GeyserPluginHook {
             || GeyserPluginError::TransactionUpdateError { msg: UNINIT.into() },
             |inner| {
                 let tx_update = TransactionUpdate::from_transaction(transaction, slot);
-                if tx_update.is_vote && inner.config.skip_vote_txs {
+
+                if inner.config.skip_vote_txs && tx_update.is_vote {
+                    return Ok(());
+                }
+
+                if inner.config.skip_deploy_txs && tx_update.is_deploy_tx() {
                     return Ok(());
                 }
 
@@ -288,5 +295,33 @@ impl TransactionUpdate {
                 index: Some(tx.index),
             },
         }
+    }
+
+    fn is_deploy_tx(&self) -> bool {
+        if self.transaction.message().instructions().len() != 1 {
+            return false;
+        }
+
+        let instruction = self.transaction.message().instructions().iter().next();
+        if instruction.is_none() {
+            return false;
+        }
+
+        let instruction = instruction.unwrap();
+        if instruction.data.is_empty() {
+            return false;
+        }
+
+        let account_keys = self.transaction.message().account_keys();
+        let program_id = account_keys[instruction.program_id_index as usize];
+        if program_id == solana_sdk::bpf_loader::id() {
+            return instruction.data[0] == BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE;
+        }
+
+        if program_id == solana_sdk::bpf_loader_upgradeable::id() {
+            return instruction.data[0] == BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE;
+        }
+
+        false
     }
 }
