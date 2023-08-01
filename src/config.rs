@@ -11,6 +11,7 @@ pub struct Config {
     pub send_blocks: bool,
 
     pub skip_vote_txs: bool,
+    pub skip_deploy_txs: bool,
 }
 
 impl Config {
