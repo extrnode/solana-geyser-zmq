@@ -1,30 +1,22 @@
-use log::info;
-use std::{fmt, sync::Arc, thread, time};
+use std::{fmt, sync::Arc};
 
 pub struct Metrics {
-    pub send_errs: std::sync::atomic::AtomicUsize,
-    pub serialize_errs: std::sync::atomic::AtomicUsize,
-    pub sender_lock_errs: std::sync::atomic::AtomicUsize,
-    pub conn_lock_errs: std::sync::atomic::AtomicUsize,
-    pub untyped_errs: std::sync::atomic::AtomicUsize,
+    pub send_errs: std::sync::atomic::AtomicU64,
+    pub serialize_errs: std::sync::atomic::AtomicU64,
+    pub sender_lock_errs: std::sync::atomic::AtomicU64,
+    pub conn_lock_errs: std::sync::atomic::AtomicU64,
+    pub untyped_errs: std::sync::atomic::AtomicU64,
 }
 
 impl Metrics {
     pub fn new_rc() -> Arc<Self> {
         Arc::new(Self {
-            send_errs: std::sync::atomic::AtomicUsize::new(0),
-            serialize_errs: std::sync::atomic::AtomicUsize::new(0),
-            sender_lock_errs: std::sync::atomic::AtomicUsize::new(0),
-            conn_lock_errs: std::sync::atomic::AtomicUsize::new(0),
-            untyped_errs: std::sync::atomic::AtomicUsize::new(0),
+            send_errs: std::sync::atomic::AtomicU64::new(0),
+            serialize_errs: std::sync::atomic::AtomicU64::new(0),
+            sender_lock_errs: std::sync::atomic::AtomicU64::new(0),
+            conn_lock_errs: std::sync::atomic::AtomicU64::new(0),
+            untyped_errs: std::sync::atomic::AtomicU64::new(0),
         })
-    }
-
-    pub fn spin(&self, interval: time::Duration) {
-        loop {
-            info!("{}", self);
-            thread::sleep(interval)
-        }
     }
 }
 

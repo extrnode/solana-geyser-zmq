@@ -1,0 +1,7 @@
+namespace Metadata;
+
+table Metadata {
+  send_errors: ulong;
+}
+
+root_type Metadata;
