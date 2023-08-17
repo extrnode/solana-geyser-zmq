@@ -116,7 +116,7 @@ impl GeyserPlugin for GeyserPluginHook {
             }
 
             info!("{}", metrics);
-            thread::sleep(Duration::from_secs(10))
+            thread::sleep(Duration::from_secs(10));
         });
 
         Ok(())
