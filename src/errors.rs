@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum GeyserError {
     #[error("tcp send error")]
-    TcpSend(usize),
+    TcpSend(u64),
 
     #[error("cannot acquire sender lock")]
     SenderLockError,

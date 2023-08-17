@@ -23,6 +23,7 @@ use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
 use solana_transaction_status::{UiReturnDataEncoding, UiTransactionReturnData};
 
+use self::metadata_generated::metadata::{Metadata, MetadataArgs};
 use self::{
     block_info_generated::block_info::{BlockInfo, BlockInfoArgs},
     common_generated::common::{Reward, RewardArgs, RewardType},
@@ -36,6 +37,8 @@ mod block_info_generated;
 #[allow(dead_code, clippy::all)]
 mod common_generated;
 #[allow(dead_code, clippy::all)]
+mod metadata_generated;
+#[allow(dead_code, clippy::all)]
 mod slot_generated;
 #[allow(dead_code, clippy::all)]
 mod transaction_info_generated;
@@ -47,6 +50,7 @@ const BYTE_PREFIX_ACCOUNT: u8 = 0;
 const BYTE_PREFIX_SLOT: u8 = 1;
 const BYTE_PREFIX_TX: u8 = 2;
 const BYTE_PREFIX_BLOCK: u8 = 3;
+const BYTE_PREFIX_METADATA: u8 = 4;
 
 pub struct AccountUpdate {
     /// The account's public key
@@ -1340,4 +1344,16 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
     output.extend(builder.finished_data().to_vec());
 
     Ok(output)
+}
+
+pub fn serialize_metadata(send_errors: u64) -> Vec<u8> {
+    let mut builder = FlatBufferBuilder::new();
+
+    let obj = Metadata::create(&mut builder, &MetadataArgs { send_errors });
+    builder.finish(obj, None);
+
+    let mut output = vec![BYTE_PREFIX_METADATA];
+    output.extend(builder.finished_data().to_vec());
+
+    output
 }

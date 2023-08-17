@@ -101,14 +101,22 @@ impl GeyserPlugin for GeyserPluginHook {
 
         info!("[on_load] - socket created");
 
-        self.0 = Some(Arc::new(Inner {
+        let plugin = Arc::new(Inner {
             socket,
             metrics: metrics.clone(),
             config: cfg,
-        }));
+        });
 
-        thread::spawn(move || {
-            metrics.spin(Duration::from_secs(10));
+        self.0 = Some(plugin.clone());
+
+        thread::spawn(move || loop {
+            let data = flatbuffer::serialize_metadata(metrics.send_errs.load(Ordering::Relaxed));
+            if let Err(e) = plugin.socket.publish(data) {
+                info!("{}", e);
+            }
+
+            info!("{}", metrics);
+            thread::sleep(Duration::from_secs(10));
         });
 
         Ok(())
