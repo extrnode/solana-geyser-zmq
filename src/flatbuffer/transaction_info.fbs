@@ -17,6 +17,8 @@ table TransactionInfo {
   signature_string: string;
   account_keys_string: [string];
   loaded_addresses_string: LoadedAddressesString;
+  pre_token_balances_ptr: [UiTokenAmountPtr];
+  post_token_balances_ptr: [UiTokenAmountPtr];
 }
 
 table LoadedAddresses {
@@ -204,6 +206,8 @@ table UiTokenAmount {
     ui_amount_string: string;
 }
 
-
+table UiTokenAmountPtr {
+    amount: float64 = null;
+}
 
 root_type TransactionInfo;

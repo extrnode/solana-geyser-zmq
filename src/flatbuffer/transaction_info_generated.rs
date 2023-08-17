@@ -839,6 +839,8 @@ pub mod transaction_info {
         pub const VT_SIGNATURE_STRING: flatbuffers::VOffsetT = 26;
         pub const VT_ACCOUNT_KEYS_STRING: flatbuffers::VOffsetT = 28;
         pub const VT_LOADED_ADDRESSES_STRING: flatbuffers::VOffsetT = 30;
+        pub const VT_PRE_TOKEN_BALANCES_PTR: flatbuffers::VOffsetT = 32;
+        pub const VT_POST_TOKEN_BALANCES_PTR: flatbuffers::VOffsetT = 34;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -857,6 +859,12 @@ pub mod transaction_info {
                 builder.add_compute_units_consumed(x);
             }
             builder.add_slot(args.slot);
+            if let Some(x) = args.post_token_balances_ptr {
+                builder.add_post_token_balances_ptr(x);
+            }
+            if let Some(x) = args.pre_token_balances_ptr {
+                builder.add_pre_token_balances_ptr(x);
+            }
             if let Some(x) = args.loaded_addresses_string {
                 builder.add_loaded_addresses_string(x);
             }
@@ -1055,6 +1063,34 @@ pub mod transaction_info {
                     )
             }
         }
+        #[inline]
+        pub fn pre_token_balances_ptr(
+            &self,
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<UiTokenAmountPtr<'a>>>>
+        {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<UiTokenAmountPtr>>,
+                >>(TransactionInfo::VT_PRE_TOKEN_BALANCES_PTR, None)
+            }
+        }
+        #[inline]
+        pub fn post_token_balances_ptr(
+            &self,
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<UiTokenAmountPtr<'a>>>>
+        {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<UiTokenAmountPtr>>,
+                >>(TransactionInfo::VT_POST_TOKEN_BALANCES_PTR, None)
+            }
+        }
     }
 
     impl flatbuffers::Verifiable for TransactionInfo<'_> {
@@ -1115,6 +1151,20 @@ pub mod transaction_info {
                     Self::VT_LOADED_ADDRESSES_STRING,
                     false,
                 )?
+                .visit_field::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<UiTokenAmountPtr>>,
+                >>(
+                    "pre_token_balances_ptr",
+                    Self::VT_PRE_TOKEN_BALANCES_PTR,
+                    false,
+                )?
+                .visit_field::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<UiTokenAmountPtr>>,
+                >>(
+                    "post_token_balances_ptr",
+                    Self::VT_POST_TOKEN_BALANCES_PTR,
+                    false,
+                )?
                 .finish();
             Ok(())
         }
@@ -1140,6 +1190,16 @@ pub mod transaction_info {
             flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>,
         >,
         pub loaded_addresses_string: Option<flatbuffers::WIPOffset<LoadedAddressesString<'a>>>,
+        pub pre_token_balances_ptr: Option<
+            flatbuffers::WIPOffset<
+                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<UiTokenAmountPtr<'a>>>,
+            >,
+        >,
+        pub post_token_balances_ptr: Option<
+            flatbuffers::WIPOffset<
+                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<UiTokenAmountPtr<'a>>>,
+            >,
+        >,
     }
     impl<'a> Default for TransactionInfoArgs<'a> {
         #[inline]
@@ -1159,6 +1219,8 @@ pub mod transaction_info {
                 signature_string: None,
                 account_keys_string: None,
                 loaded_addresses_string: None,
+                pre_token_balances_ptr: None,
+                post_token_balances_ptr: None,
             }
         }
     }
@@ -1289,6 +1351,30 @@ pub mod transaction_info {
                 );
         }
         #[inline]
+        pub fn add_pre_token_balances_ptr(
+            &mut self,
+            pre_token_balances_ptr: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<UiTokenAmountPtr<'b>>>,
+            >,
+        ) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionInfo::VT_PRE_TOKEN_BALANCES_PTR,
+                pre_token_balances_ptr,
+            );
+        }
+        #[inline]
+        pub fn add_post_token_balances_ptr(
+            &mut self,
+            post_token_balances_ptr: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<UiTokenAmountPtr<'b>>>,
+            >,
+        ) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionInfo::VT_POST_TOKEN_BALANCES_PTR,
+                post_token_balances_ptr,
+            );
+        }
+        #[inline]
         pub fn new(
             _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
         ) -> TransactionInfoBuilder<'a, 'b> {
@@ -1322,6 +1408,8 @@ pub mod transaction_info {
             ds.field("signature_string", &self.signature_string());
             ds.field("account_keys_string", &self.account_keys_string());
             ds.field("loaded_addresses_string", &self.loaded_addresses_string());
+            ds.field("pre_token_balances_ptr", &self.pre_token_balances_ptr());
+            ds.field("post_token_balances_ptr", &self.post_token_balances_ptr());
             ds.finish()
         }
     }
@@ -3881,6 +3969,108 @@ pub mod transaction_info {
             ds.field("decimals", &self.decimals());
             ds.field("amount", &self.amount());
             ds.field("ui_amount_string", &self.ui_amount_string());
+            ds.finish()
+        }
+    }
+    pub enum UiTokenAmountPtrOffset {}
+    #[derive(Copy, Clone, PartialEq)]
+
+    pub struct UiTokenAmountPtr<'a> {
+        pub _tab: flatbuffers::Table<'a>,
+    }
+
+    impl<'a> flatbuffers::Follow<'a> for UiTokenAmountPtr<'a> {
+        type Inner = UiTokenAmountPtr<'a>;
+        #[inline]
+        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+            Self {
+                _tab: flatbuffers::Table::new(buf, loc),
+            }
+        }
+    }
+
+    impl<'a> UiTokenAmountPtr<'a> {
+        pub const VT_AMOUNT: flatbuffers::VOffsetT = 4;
+
+        #[inline]
+        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+            UiTokenAmountPtr { _tab: table }
+        }
+        #[allow(unused_mut)]
+        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+            args: &'args UiTokenAmountPtrArgs,
+        ) -> flatbuffers::WIPOffset<UiTokenAmountPtr<'bldr>> {
+            let mut builder = UiTokenAmountPtrBuilder::new(_fbb);
+            if let Some(x) = args.amount {
+                builder.add_amount(x);
+            }
+            builder.finish()
+        }
+
+        #[inline]
+        pub fn amount(&self) -> Option<f64> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe { self._tab.get::<f64>(UiTokenAmountPtr::VT_AMOUNT, None) }
+        }
+    }
+
+    impl flatbuffers::Verifiable for UiTokenAmountPtr<'_> {
+        #[inline]
+        fn run_verifier(
+            v: &mut flatbuffers::Verifier,
+            pos: usize,
+        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+            use self::flatbuffers::Verifiable;
+            v.visit_table(pos)?
+                .visit_field::<f64>("amount", Self::VT_AMOUNT, false)?
+                .finish();
+            Ok(())
+        }
+    }
+    pub struct UiTokenAmountPtrArgs {
+        pub amount: Option<f64>,
+    }
+    impl<'a> Default for UiTokenAmountPtrArgs {
+        #[inline]
+        fn default() -> Self {
+            UiTokenAmountPtrArgs { amount: None }
+        }
+    }
+
+    pub struct UiTokenAmountPtrBuilder<'a: 'b, 'b> {
+        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+    }
+    impl<'a: 'b, 'b> UiTokenAmountPtrBuilder<'a, 'b> {
+        #[inline]
+        pub fn add_amount(&mut self, amount: f64) {
+            self.fbb_
+                .push_slot_always::<f64>(UiTokenAmountPtr::VT_AMOUNT, amount);
+        }
+        #[inline]
+        pub fn new(
+            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        ) -> UiTokenAmountPtrBuilder<'a, 'b> {
+            let start = _fbb.start_table();
+            UiTokenAmountPtrBuilder {
+                fbb_: _fbb,
+                start_: start,
+            }
+        }
+        #[inline]
+        pub fn finish(self) -> flatbuffers::WIPOffset<UiTokenAmountPtr<'a>> {
+            let o = self.fbb_.end_table(self.start_);
+            flatbuffers::WIPOffset::new(o.value())
+        }
+    }
+
+    impl core::fmt::Debug for UiTokenAmountPtr<'_> {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            let mut ds = f.debug_struct("UiTokenAmountPtr");
+            ds.field("amount", &self.amount());
             ds.finish()
         }
     }

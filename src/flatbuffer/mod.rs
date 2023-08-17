@@ -1,7 +1,7 @@
 //! FlatBuffer serialization module
 use crate::flatbuffer::transaction_info_generated::transaction_info::{
     LoadedAddressesString, LoadedAddressesStringArgs, TransactionReturnData,
-    TransactionReturnDataArgs,
+    TransactionReturnDataArgs, UiTokenAmountPtr, UiTokenAmountPtrArgs,
 };
 use crate::{
     errors::GeyserError,
@@ -263,10 +263,12 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
             None
         };
 
-    let pre_token_balances = if let Some(pre_token_balances) =
+    let (pre_token_balances, pre_token_balances_ptr) = if let Some(pre_token_balances) =
         &transaction.transaction_meta.pre_token_balances
     {
         let mut pre_token_balances_vec = Vec::with_capacity(pre_token_balances.len());
+        let mut pre_token_balances_ptr_vec = Vec::with_capacity(pre_token_balances.len());
+
         for transaction_token_balance in pre_token_balances {
             let amount =
                 Some(builder.create_string(&transaction_token_balance.ui_token_amount.amount));
@@ -274,23 +276,11 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                 builder.create_string(&transaction_token_balance.ui_token_amount.ui_amount_string),
             );
             let decimals = transaction_token_balance.ui_token_amount.decimals;
-            let ui_amount = if transaction_token_balance
-                .ui_token_amount
-                .ui_amount
-                .is_some()
-            {
-                transaction_token_balance
-                    .ui_token_amount
-                    .ui_amount
-                    .unwrap_or(0.0)
-            } else {
-                0.0
-            };
 
             let ui_token_amount = Some(UiTokenAmount::create(
                 &mut builder,
                 &UiTokenAmountArgs {
-                    ui_amount,
+                    ui_amount: 0.0,
                     decimals,
                     amount,
                     ui_amount_string,
@@ -311,16 +301,28 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                     program_id,
                 },
             ));
+
+            pre_token_balances_ptr_vec.push(UiTokenAmountPtr::create(
+                &mut builder,
+                &UiTokenAmountPtrArgs {
+                    amount: transaction_token_balance.ui_token_amount.ui_amount,
+                },
+            ));
         }
-        Some(builder.create_vector(pre_token_balances_vec.as_ref()))
+        (
+            Some(builder.create_vector(pre_token_balances_vec.as_ref())),
+            Some(builder.create_vector(pre_token_balances_ptr_vec.as_ref())),
+        )
     } else {
-        None
+        (None, None)
     };
 
-    let post_token_balances = if let Some(post_token_balances) =
+    let (post_token_balances, post_token_balances_ptr) = if let Some(post_token_balances) =
         &transaction.transaction_meta.post_token_balances
     {
         let mut post_token_balances_vec = Vec::with_capacity(post_token_balances.len());
+        let mut post_token_balances_ptr_vec = Vec::with_capacity(post_token_balances.len());
+
         for transaction_token_balance in post_token_balances {
             let amount =
                 Some(builder.create_string(&transaction_token_balance.ui_token_amount.amount));
@@ -328,23 +330,11 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                 builder.create_string(&transaction_token_balance.ui_token_amount.ui_amount_string),
             );
             let decimals = transaction_token_balance.ui_token_amount.decimals;
-            let ui_amount = if transaction_token_balance
-                .ui_token_amount
-                .ui_amount
-                .is_some()
-            {
-                transaction_token_balance
-                    .ui_token_amount
-                    .ui_amount
-                    .unwrap_or(0.0)
-            } else {
-                0.0
-            };
 
             let ui_token_amount = Some(UiTokenAmount::create(
                 &mut builder,
                 &UiTokenAmountArgs {
-                    ui_amount,
+                    ui_amount: 0.0,
                     decimals,
                     amount,
                     ui_amount_string,
@@ -365,10 +355,20 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                     program_id,
                 },
             ));
+
+            post_token_balances_ptr_vec.push(UiTokenAmountPtr::create(
+                &mut builder,
+                &UiTokenAmountPtrArgs {
+                    amount: transaction_token_balance.ui_token_amount.ui_amount,
+                },
+            ));
         }
-        Some(builder.create_vector(post_token_balances_vec.as_ref()))
+        (
+            Some(builder.create_vector(post_token_balances_vec.as_ref())),
+            Some(builder.create_vector(post_token_balances_ptr_vec.as_ref())),
+        )
     } else {
-        None
+        (None, None)
     };
 
     let rewards = if let Some(rewards) = &transaction.transaction_meta.rewards {
@@ -1324,6 +1324,7 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
             transaction: tx,
             transaction_meta,
             loaded_addresses_string,
+            pre_token_balances_ptr,
             account_keys_string,
             memo,
             return_data,
@@ -1332,6 +1333,7 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
             signature: None,
             account_keys: None,
             loaded_addresses: None,
+            post_token_balances_ptr,
         },
     );
     builder.finish(transaction_info, None);
