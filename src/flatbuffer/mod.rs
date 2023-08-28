@@ -1,4 +1,7 @@
 //! FlatBuffer serialization module
+use crate::flatbuffer::account_info_generated::account_info_v2::{
+    AccountData, AccountDataArgs, AccountInfoV2, AccountInfoV2Args,
+};
 use crate::flatbuffer::transaction_info_generated::transaction_info::{
     LoadedAddressesString, LoadedAddressesStringArgs, TransactionReturnData,
     TransactionReturnDataArgs, UiTokenAmountPtr, UiTokenAmountPtrArgs,
@@ -15,7 +18,6 @@ use crate::{
         UiTokenAmount, UiTokenAmountArgs, Uint32Value, Uint32ValueArgs,
     },
 };
-use account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
 use flatbuffers::FlatBufferBuilder;
 use solana_geyser_plugin_interface::geyser_plugin_interface::{ReplicaBlockInfo, SlotStatus};
 pub use solana_program::hash::Hash;
@@ -46,11 +48,12 @@ mod transaction_info_generated;
 #[derive(Debug, Copy, Clone)]
 pub struct FlatBufferSerialization {}
 
-const BYTE_PREFIX_ACCOUNT: u8 = 0;
 const BYTE_PREFIX_SLOT: u8 = 1;
 const BYTE_PREFIX_TX: u8 = 2;
 const BYTE_PREFIX_BLOCK: u8 = 3;
 const BYTE_PREFIX_METADATA: u8 = 4;
+
+const BYTE_PREFIX_ACCOUNT_V2: u8 = 5;
 
 pub struct AccountUpdate {
     /// The account's public key
@@ -76,31 +79,34 @@ pub struct AccountUpdate {
 pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
 
-    let data = builder.create_vector(account.data.as_ref());
+    let data = Some(builder.create_vector(account.data.as_ref()));
 
-    let pubkey_string = Some(builder.create_string(account.key.to_string().as_ref()));
-    let owner_string = Some(builder.create_string(account.owner.to_string().as_ref()));
-
-    let account_info = AccountInfo::create(
+    let pubkey = Some(builder.create_string(account.key.to_string().as_ref()));
+    let owner = Some(builder.create_string(account.owner.to_string().as_ref()));
+    let account_data = Some(AccountData::create(
         &mut builder,
-        &AccountInfoArgs {
-            pubkey_string,
+        &AccountDataArgs {
             lamports: account.lamports,
-            owner_string,
-            executable: account.executable,
             rent_epoch: account.rent_epoch,
-            data: Some(data),
-            write_version: account.write_version,
+            executable: account.executable,
+            version: account.write_version,
+            data,
+        },
+    ));
+
+    let account_info = AccountInfoV2::create(
+        &mut builder,
+        &AccountInfoV2Args {
+            pubkey,
+            owner,
             slot: account.slot,
-            is_startup: account.is_startup,
-            pubkey: None,
-            owner: None,
+            account_data,
         },
     );
 
     builder.finish(account_info, None);
 
-    let mut output = vec![BYTE_PREFIX_ACCOUNT];
+    let mut output = vec![BYTE_PREFIX_ACCOUNT_V2];
     output.extend(builder.finished_data().to_vec());
 
     output
