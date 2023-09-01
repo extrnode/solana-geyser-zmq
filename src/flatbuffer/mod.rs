@@ -102,7 +102,7 @@ pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
             pubkey,
             owner,
             slot: account.slot,
-            account_data: account_data,
+            account_data,
         },
     );
 
