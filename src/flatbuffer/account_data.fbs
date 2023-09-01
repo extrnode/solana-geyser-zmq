@@ -1,0 +1,11 @@
+namespace AccountData;
+
+table AccountData {
+    lamports: ulong;
+    rent_epoch: ulong;
+    executable: bool;
+    version: ulong;
+    data: [ubyte];
+}
+
+root_type AccountData;

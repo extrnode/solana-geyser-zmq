@@ -1,7 +1,5 @@
 //! FlatBuffer serialization module
-use crate::flatbuffer::account_info_generated::account_info_v2::{
-    AccountData, AccountDataArgs, AccountInfoV2, AccountInfoV2Args,
-};
+use crate::flatbuffer::account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
 use crate::flatbuffer::transaction_info_generated::transaction_info::{
     LoadedAddressesString, LoadedAddressesStringArgs, TransactionReturnData,
     TransactionReturnDataArgs, UiTokenAmountPtr, UiTokenAmountPtrArgs,
@@ -25,6 +23,7 @@ use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
 use solana_transaction_status::{UiReturnDataEncoding, UiTransactionReturnData};
 
+use self::account_data_generated::account_data::{AccountData, AccountDataArgs};
 use self::metadata_generated::metadata::{Metadata, MetadataArgs};
 use self::{
     block_info_generated::block_info::{BlockInfo, BlockInfoArgs},
@@ -32,6 +31,8 @@ use self::{
     slot_generated::slot::{Slot, SlotArgs, Status},
 };
 
+#[allow(dead_code, clippy::all)]
+mod account_data_generated;
 #[allow(dead_code, clippy::all)]
 mod account_info_generated;
 #[allow(dead_code, clippy::all)]
@@ -48,12 +49,11 @@ mod transaction_info_generated;
 #[derive(Debug, Copy, Clone)]
 pub struct FlatBufferSerialization {}
 
+const BYTE_PREFIX_ACCOUNT: u8 = 0;
 const BYTE_PREFIX_SLOT: u8 = 1;
 const BYTE_PREFIX_TX: u8 = 2;
 const BYTE_PREFIX_BLOCK: u8 = 3;
 const BYTE_PREFIX_METADATA: u8 = 4;
-
-const BYTE_PREFIX_ACCOUNT_V2: u8 = 5;
 
 pub struct AccountUpdate {
     /// The account's public key
@@ -77,14 +77,10 @@ pub struct AccountUpdate {
 }
 
 pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
-    let mut builder = FlatBufferBuilder::new();
-
-    let data = Some(builder.create_vector(account.data.as_ref()));
-
-    let pubkey = Some(builder.create_string(account.key.to_string().as_ref()));
-    let owner = Some(builder.create_string(account.owner.to_string().as_ref()));
-    let account_data = Some(AccountData::create(
-        &mut builder,
+    let mut data_builder = FlatBufferBuilder::new();
+    let data = Some(data_builder.create_vector(account.data.as_ref()));
+    let account_data = AccountData::create(
+        &mut data_builder,
         &AccountDataArgs {
             lamports: account.lamports,
             rent_epoch: account.rent_epoch,
@@ -92,21 +88,27 @@ pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
             version: account.write_version,
             data,
         },
-    ));
+    );
+    data_builder.finish(account_data, None);
 
-    let account_info = AccountInfoV2::create(
+    let mut builder = FlatBufferBuilder::new();
+    let pubkey = Some(builder.create_string(account.key.to_string().as_ref()));
+    let owner = Some(builder.create_string(account.owner.to_string().as_ref()));
+    let account_data = Some(builder.create_vector(data_builder.finished_data()));
+
+    let account_info = AccountInfo::create(
         &mut builder,
-        &AccountInfoV2Args {
+        &AccountInfoArgs {
             pubkey,
             owner,
             slot: account.slot,
-            account_data,
+            account_data: account_data,
         },
     );
 
     builder.finish(account_info, None);
 
-    let mut output = vec![BYTE_PREFIX_ACCOUNT_V2];
+    let mut output = vec![BYTE_PREFIX_ACCOUNT];
     output.extend(builder.finished_data().to_vec());
 
     output
