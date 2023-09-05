@@ -1,18 +1,10 @@
-namespace AccountInfoV2;
+namespace AccountInfo;
 
-table AccountInfoV2 {
+table AccountInfo {
   pubkey: string;
   owner: string;
   slot: uint64;
-  account_data: AccountData;
+  account_data: [uint8];
 }
 
-table AccountData {
-    lamports: ulong;
-    rent_epoch: ulong;
-    executable: bool;
-    version: ulong;
-    data: [ubyte];
-}
-
-root_type AccountInfoV2;
+root_type AccountInfo;
