@@ -8,7 +8,7 @@ use std::thread;
 use crate::errors::GeyserError;
 
 const DEFAULT_VECTOR_PREALLOC: usize = 1024 * 1024;
-const HEADER_BYTE_SIZE: usize = 4;
+pub const HEADER_BYTE_SIZE: usize = 4;
 
 pub struct TcpBuffer {
     data: Vec<Vec<u8>>,
@@ -158,5 +158,47 @@ impl TcpSender {
         let mut conns = conns.write().map_err(|_| GeyserError::ConnLockError)?;
         conns.push(conn);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TcpSender;
+    use super::*;
+    use crate::receiver::TcpReceiver;
+    use std::thread::sleep;
+    use std::time::Duration;
+
+    #[test]
+    fn test_sender() {
+        let sender = TcpSender::new(10);
+        sender.bind(9050, 100).unwrap();
+
+        let received_count = Arc::new(Mutex::new(0));
+        let received_count_clone = received_count.clone();
+
+        thread::spawn(move || {
+            let receiver = TcpReceiver::new(
+                Box::new(move |_data| {
+                    let mut received_count = received_count_clone.lock().unwrap();
+                    *received_count += 1;
+                }),
+                Duration::from_secs(1),
+                Duration::from_secs(1),
+            );
+            receiver.connect("127.0.0.1:9050".parse().unwrap()).unwrap();
+        });
+
+        sleep(Duration::from_secs(1));
+
+        let sent_messages = 100;
+        let msg = b"hello world".to_vec();
+        for _ in 0..sent_messages {
+            sender.publish(msg.clone()).unwrap();
+        }
+
+        sleep(Duration::from_secs(2));
+
+        assert_eq!(sent_messages, *received_count.lock().unwrap());
     }
 }
