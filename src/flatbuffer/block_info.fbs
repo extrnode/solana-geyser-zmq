@@ -8,6 +8,9 @@ table BlockInfo {
   rewards: [Common.Reward];
   block_time: long;
   block_height: ulong;
+  parent_slot: ulong = null;
+  parent_blockhash: string;
+  executed_transaction_count: uint64 = null;
 }
 
 root_type BlockInfo;

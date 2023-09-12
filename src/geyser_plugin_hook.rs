@@ -1,3 +1,4 @@
+use crate::flatbuffer::BlockUpdate;
 use crate::{
     config::Config,
     errors::GeyserError,
@@ -133,7 +134,7 @@ impl GeyserPlugin for GeyserPluginHook {
     /// Note: The account is versioned, so you can decide how to handle the different
     /// implementations.
     fn update_account(
-        &mut self,
+        &self,
         account: ReplicaAccountInfoVersions,
         slot: u64,
         is_startup: bool,
@@ -178,6 +179,22 @@ impl GeyserPlugin for GeyserPluginHook {
                             is_startup,
                         }
                     }
+                    ReplicaAccountInfoVersions::V0_0_3(acc) => {
+                        let key = Pubkey::new_from_array(acc.pubkey.try_into()?);
+                        let owner = Pubkey::new_from_array(acc.owner.try_into()?);
+
+                        AccountUpdate {
+                            key,
+                            lamports: acc.lamports,
+                            owner,
+                            executable: acc.executable,
+                            rent_epoch: acc.rent_epoch,
+                            data: acc.data.to_vec(),
+                            write_version: acc.write_version,
+                            slot,
+                            is_startup,
+                        }
+                    }
                 };
                 let data = flatbuffer::serialize_account(&account_update);
                 inner.socket.publish(data)?;
@@ -189,17 +206,12 @@ impl GeyserPlugin for GeyserPluginHook {
 
     /// Lifecycle: called when all accounts have been notified when the validator
     /// restores the AccountsDb from snapshots at startup.
-    fn notify_end_of_startup(&mut self) -> Result<()> {
+    fn notify_end_of_startup(&self) -> Result<()> {
         Ok(())
     }
 
     /// Event: a slot status is updated.
-    fn update_slot_status(
-        &mut self,
-        slot: u64,
-        parent: Option<u64>,
-        status: SlotStatus,
-    ) -> Result<()> {
+    fn update_slot_status(&self, slot: u64, parent: Option<u64>, status: SlotStatus) -> Result<()> {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
@@ -214,7 +226,7 @@ impl GeyserPlugin for GeyserPluginHook {
     /// Event: a transaction is updated at a slot.
     #[allow(unused_variables)]
     fn notify_transaction(
-        &mut self,
+        &self,
         transaction: ReplicaTransactionInfoVersions,
         slot: u64,
     ) -> Result<()> {
@@ -239,7 +251,7 @@ impl GeyserPlugin for GeyserPluginHook {
         )
     }
 
-    fn notify_block_metadata(&mut self, blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
+    fn notify_block_metadata(&self, blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
@@ -247,12 +259,8 @@ impl GeyserPlugin for GeyserPluginHook {
                     return Ok(());
                 }
 
-                match blockinfo {
-                    ReplicaBlockInfoVersions::V0_0_1(block) => {
-                        let data = flatbuffer::serialize_block(block);
-                        inner.socket.publish(data)?;
-                    }
-                };
+                let data = flatbuffer::serialize_block(&blockinfo.into());
+                inner.socket.publish(data)?;
 
                 Ok(())
             },
@@ -331,5 +339,32 @@ impl TransactionUpdate {
         }
 
         false
+    }
+}
+
+impl<'a> From<ReplicaBlockInfoVersions<'a>> for BlockUpdate<'a> {
+    fn from(block_info: ReplicaBlockInfoVersions<'a>) -> Self {
+        match block_info {
+            ReplicaBlockInfoVersions::V0_0_1(block) => BlockUpdate {
+                parent_slot: None,
+                parent_blockhash: None,
+                slot: block.slot,
+                blockhash: block.blockhash,
+                rewards: block.rewards,
+                block_time: block.block_time,
+                block_height: block.block_height,
+                executed_transaction_count: None,
+            },
+            ReplicaBlockInfoVersions::V0_0_2(block) => BlockUpdate {
+                parent_slot: Some(block.parent_slot),
+                parent_blockhash: Some(block.parent_blockhash),
+                slot: block.slot,
+                blockhash: block.blockhash,
+                rewards: block.rewards,
+                block_time: block.block_time,
+                block_height: block.block_height,
+                executed_transaction_count: Some(block.executed_transaction_count),
+            },
+        }
     }
 }

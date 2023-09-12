@@ -17,7 +17,7 @@ use crate::{
     },
 };
 use flatbuffers::FlatBufferBuilder;
-use solana_geyser_plugin_interface::geyser_plugin_interface::{ReplicaBlockInfo, SlotStatus};
+use solana_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
 pub use solana_program::hash::Hash;
 use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
@@ -74,6 +74,17 @@ pub struct AccountUpdate {
     pub slot: u64,
     /// True if this update was triggered by a validator startup
     pub is_startup: bool,
+}
+
+pub struct BlockUpdate<'a> {
+    pub parent_slot: Option<u64>,
+    pub parent_blockhash: Option<&'a str>,
+    pub slot: u64,
+    pub blockhash: &'a str,
+    pub rewards: &'a [solana_transaction_status::Reward],
+    pub block_time: Option<i64>,
+    pub block_height: Option<u64>,
+    pub executed_transaction_count: Option<u64>,
 }
 
 pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
@@ -138,7 +149,7 @@ pub fn serialize_slot(slot: u64, parent: Option<u64>, status: SlotStatus) -> Vec
     output
 }
 
-pub fn serialize_block(block: &ReplicaBlockInfo) -> Vec<u8> {
+pub fn serialize_block(block: &BlockUpdate) -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
 
     let rewards = if !block.rewards.is_empty() {
@@ -174,6 +185,11 @@ pub fn serialize_block(block: &ReplicaBlockInfo) -> Vec<u8> {
     };
 
     let blockhash = builder.create_string(block.blockhash);
+    let parent_blockhash = if block.parent_blockhash.is_some() {
+        Some(builder.create_string(block.parent_blockhash.unwrap()))
+    } else {
+        None
+    };
 
     let b = BlockInfo::create(
         &mut builder,
@@ -182,7 +198,10 @@ pub fn serialize_block(block: &ReplicaBlockInfo) -> Vec<u8> {
             blockhash: Some(blockhash),
             block_time: block.block_time.unwrap_or(0),
             block_height: block.block_height.unwrap_or(0),
+            parent_slot: block.parent_slot,
+            parent_blockhash,
             rewards,
+            executed_transaction_count: block.executed_transaction_count,
         },
     );
 
@@ -248,12 +267,13 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                     Vec::with_capacity(inner_instruction.instructions.len());
 
                 for instruction in &inner_instruction.instructions {
-                    let accounts = Some(builder.create_vector(instruction.accounts.as_ref()));
-                    let data = Some(builder.create_vector(instruction.data.as_ref()));
+                    let accounts =
+                        Some(builder.create_vector(instruction.instruction.accounts.as_ref()));
+                    let data = Some(builder.create_vector(instruction.instruction.data.as_ref()));
                     compiled_instructions.push(CompiledInstruction::create(
                         &mut builder,
                         &CompiledInstructionArgs {
-                            program_id_index: instruction.program_id_index,
+                            program_id_index: instruction.instruction.program_id_index,
                             accounts,
                             data,
                         },
@@ -429,93 +449,92 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
         None
     };
 
-    let status =
-        if transaction.transaction_meta.status.is_ok() {
-            None
-        } else {
-            match transaction.transaction_meta.status.clone().err().unwrap() {
-                solana_sdk::transaction::TransactionError::AccountInUse => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::AccountInUse,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::AccountLoadedTwice => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::AccountLoadedTwice,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::AccountNotFound => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::AccountNotFound,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::ProgramAccountNotFound => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::ProgramAccountNotFound,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InsufficientFundsForFee => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InsufficientFundsForFee,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InvalidAccountForFee => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InvalidAccountForFee,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::AlreadyProcessed => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::AlreadyProcessed,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::BlockhashNotFound => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::BlockhashNotFound,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InstructionError(index, error) => {
-                    let inner_instruction = match error {
+    let status = if transaction.transaction_meta.status.is_ok() {
+        None
+    } else {
+        match transaction.transaction_meta.status.clone().err().unwrap() {
+            solana_sdk::transaction::TransactionError::AccountInUse => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::AccountInUse,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::AccountLoadedTwice => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::AccountLoadedTwice,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::AccountNotFound => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::AccountNotFound,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::ProgramAccountNotFound => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::ProgramAccountNotFound,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InsufficientFundsForFee => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InsufficientFundsForFee,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidAccountForFee => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidAccountForFee,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::AlreadyProcessed => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::AlreadyProcessed,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::BlockhashNotFound => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::BlockhashNotFound,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InstructionError(index, error) => {
+                let inner_instruction = match error {
                         solana_sdk::instruction::InstructionError::GenericError =>
                             Some(InstructionError::create(
                                 &mut builder,
@@ -982,11 +1001,11 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                                     err_data: None,
                                 },
                             )),
-                        solana_sdk::instruction::InstructionError::MaxAccountsDataSizeExceeded =>
+                        solana_sdk::instruction::InstructionError::MaxAccountsDataAllocationsExceeded =>
                             Some(InstructionError::create(
                                 &mut builder,
                                 &InstructionErrorArgs {
-                                    err_type: InstructionErrorType::MaxAccountsDataSizeExceeded,
+                                    err_type: InstructionErrorType::MaxAccountsDataAllocationsExceeded,
                                     err_data_type: Default::default(),
                                     err_data: None,
                                 },
@@ -1000,276 +1019,324 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                                     err_data: None,
                                 },
                             )),
+                        solana_sdk::instruction::InstructionError::MaxInstructionTraceLengthExceeded =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::MaxInstructionTraceLengthExceeded,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
+                        solana_sdk::instruction::InstructionError::BuiltinProgramsMustConsumeComputeUnits =>
+                            Some(InstructionError::create(
+                                &mut builder,
+                                &InstructionErrorArgs {
+                                    err_type: InstructionErrorType::BuiltinProgramsMustConsumeComputeUnits,
+                                    err_data_type: Default::default(),
+                                    err_data: None,
+                                },
+                            )),
                     };
-                    let inner_error_data = Some(
-                        InstructionErrorData::create(
-                            &mut builder,
-                            &InstructionErrorDataArgs {
-                                instruction_number: index,
-                                err: inner_instruction,
-                            },
-                        )
-                        .as_union_value(),
-                    );
+                let inner_error_data = Some(
+                    InstructionErrorData::create(
+                        &mut builder,
+                        &InstructionErrorDataArgs {
+                            instruction_number: index,
+                            err: inner_instruction,
+                        },
+                    )
+                    .as_union_value(),
+                );
 
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InstructionError,
-                            err_data_type: TransactionErrorData::InstructionError,
-                            err_data: inner_error_data,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::CallChainTooDeep => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::CallChainTooDeep,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::MissingSignatureForFee => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::MissingSignatureForFee,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InvalidAccountIndex => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InvalidAccountIndex,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::SignatureFailure => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::SignatureFailure,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InvalidProgramForExecution => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InvalidProgramForExecution,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::SanitizeFailure => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::SanitizeFailure,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::ClusterMaintenance => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::ClusterMaintenance,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::AccountBorrowOutstanding => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::AccountBorrowOutstanding,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::WouldExceedMaxBlockCostLimit => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::WouldExceedMaxBlockCostLimit,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::UnsupportedVersion => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::UnsupportedVersion,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InvalidWritableAccount => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InvalidWritableAccount,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::WouldExceedMaxAccountCostLimit => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::WouldExceedMaxAccountCostLimit,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::WouldExceedAccountDataBlockLimit => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::WouldExceedAccountDataBlockLimit,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::TooManyAccountLocks => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::TooManyAccountLocks,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::AddressLookupTableNotFound => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::AddressLookupTableNotFound,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InvalidAddressLookupTableOwner => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InvalidAddressLookupTableOwner,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InvalidAddressLookupTableData => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InvalidAddressLookupTableData,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InvalidAddressLookupTableIndex => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InvalidAddressLookupTableIndex,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InvalidRentPayingAccount => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InvalidRentPayingAccount,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::WouldExceedMaxVoteCostLimit => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::WouldExceedMaxVoteCostLimit,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::WouldExceedAccountDataTotalLimit => {
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::WouldExceedAccountDataTotalLimit,
-                            err_data_type: Default::default(),
-                            err_data: None,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::DuplicateInstruction(index) => {
-                    let val = Some(
-                        InnerByte::create(&mut builder, &InnerByteArgs { inner_byte: index })
-                            .as_union_value(),
-                    );
-
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::DuplicateInstruction,
-                            err_data_type: TransactionErrorData::InnerByte,
-                            err_data: val,
-                        },
-                    ))
-                }
-                solana_sdk::transaction::TransactionError::InsufficientFundsForRent {
-                    account_index,
-                } => {
-                    let val = Some(
-                        InnerByte::create(
-                            &mut builder,
-                            &InnerByteArgs {
-                                inner_byte: account_index,
-                            },
-                        )
-                        .as_union_value(),
-                    );
-
-                    Some(TransactionError::create(
-                        &mut builder,
-                        &TransactionErrorArgs {
-                            err_type: TransactionErrorType::InsufficientFundsForRent,
-                            err_data_type: TransactionErrorData::InnerByte,
-                            err_data: val,
-                        },
-                    ))
-                }
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InstructionError,
+                        err_data_type: TransactionErrorData::InstructionError,
+                        err_data: inner_error_data,
+                    },
+                ))
             }
-        };
+            solana_sdk::transaction::TransactionError::CallChainTooDeep => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::CallChainTooDeep,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::MissingSignatureForFee => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::MissingSignatureForFee,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidAccountIndex => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidAccountIndex,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::SignatureFailure => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::SignatureFailure,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidProgramForExecution => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidProgramForExecution,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::SanitizeFailure => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::SanitizeFailure,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::ClusterMaintenance => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::ClusterMaintenance,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::AccountBorrowOutstanding => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::AccountBorrowOutstanding,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::WouldExceedMaxBlockCostLimit => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::WouldExceedMaxBlockCostLimit,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::UnsupportedVersion => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::UnsupportedVersion,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidWritableAccount => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidWritableAccount,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::WouldExceedMaxAccountCostLimit => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::WouldExceedMaxAccountCostLimit,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::WouldExceedAccountDataBlockLimit => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::WouldExceedAccountDataBlockLimit,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::TooManyAccountLocks => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::TooManyAccountLocks,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::AddressLookupTableNotFound => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::AddressLookupTableNotFound,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidAddressLookupTableOwner => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidAddressLookupTableOwner,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidAddressLookupTableData => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidAddressLookupTableData,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidAddressLookupTableIndex => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidAddressLookupTableIndex,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidRentPayingAccount => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidRentPayingAccount,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::WouldExceedMaxVoteCostLimit => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::WouldExceedMaxVoteCostLimit,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::WouldExceedAccountDataTotalLimit => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::WouldExceedAccountDataTotalLimit,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::DuplicateInstruction(index) => {
+                let val = Some(
+                    InnerByte::create(&mut builder, &InnerByteArgs { inner_byte: index })
+                        .as_union_value(),
+                );
+
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::DuplicateInstruction,
+                        err_data_type: TransactionErrorData::InnerByte,
+                        err_data: val,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InsufficientFundsForRent {
+                account_index,
+            } => {
+                let val = Some(
+                    InnerByte::create(
+                        &mut builder,
+                        &InnerByteArgs {
+                            inner_byte: account_index,
+                        },
+                    )
+                    .as_union_value(),
+                );
+
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InsufficientFundsForRent,
+                        err_data_type: TransactionErrorData::InnerByte,
+                        err_data: val,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::MaxLoadedAccountsDataSizeExceeded => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::MaxLoadedAccountsDataSizeExceeded,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::InvalidLoadedAccountsDataSizeLimit => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::InvalidLoadedAccountsDataSizeLimit,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+            solana_sdk::transaction::TransactionError::ResanitizationNeeded => {
+                Some(TransactionError::create(
+                    &mut builder,
+                    &TransactionErrorArgs {
+                        err_type: TransactionErrorType::ResanitizationNeeded,
+                        err_data_type: Default::default(),
+                        err_data: None,
+                    },
+                ))
+            }
+        }
+    };
 
     let transaction_meta = Some(TransactionStatusMeta::create(
         &mut builder,

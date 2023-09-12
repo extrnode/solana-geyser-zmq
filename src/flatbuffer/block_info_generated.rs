@@ -34,6 +34,9 @@ pub mod block_info {
         pub const VT_REWARDS: flatbuffers::VOffsetT = 8;
         pub const VT_BLOCK_TIME: flatbuffers::VOffsetT = 10;
         pub const VT_BLOCK_HEIGHT: flatbuffers::VOffsetT = 12;
+        pub const VT_PARENT_SLOT: flatbuffers::VOffsetT = 14;
+        pub const VT_PARENT_BLOCKHASH: flatbuffers::VOffsetT = 16;
+        pub const VT_EXECUTED_TRANSACTION_COUNT: flatbuffers::VOffsetT = 18;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -45,9 +48,18 @@ pub mod block_info {
             args: &'args BlockInfoArgs<'args>,
         ) -> flatbuffers::WIPOffset<BlockInfo<'bldr>> {
             let mut builder = BlockInfoBuilder::new(_fbb);
+            if let Some(x) = args.executed_transaction_count {
+                builder.add_executed_transaction_count(x);
+            }
+            if let Some(x) = args.parent_slot {
+                builder.add_parent_slot(x);
+            }
             builder.add_block_height(args.block_height);
             builder.add_block_time(args.block_time);
             builder.add_slot(args.slot);
+            if let Some(x) = args.parent_blockhash {
+                builder.add_parent_blockhash(x);
+            }
             if let Some(x) = args.rewards {
                 builder.add_rewards(x);
             }
@@ -109,6 +121,33 @@ pub mod block_info {
                     .unwrap()
             }
         }
+        #[inline]
+        pub fn parent_slot(&self) -> Option<u64> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe { self._tab.get::<u64>(BlockInfo::VT_PARENT_SLOT, None) }
+        }
+        #[inline]
+        pub fn parent_blockhash(&self) -> Option<&'a str> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<&str>>(BlockInfo::VT_PARENT_BLOCKHASH, None)
+            }
+        }
+        #[inline]
+        pub fn executed_transaction_count(&self) -> Option<u64> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<u64>(BlockInfo::VT_EXECUTED_TRANSACTION_COUNT, None)
+            }
+        }
     }
 
     impl flatbuffers::Verifiable for BlockInfo<'_> {
@@ -130,6 +169,17 @@ pub mod block_info {
                 >>("rewards", Self::VT_REWARDS, false)?
                 .visit_field::<i64>("block_time", Self::VT_BLOCK_TIME, false)?
                 .visit_field::<u64>("block_height", Self::VT_BLOCK_HEIGHT, false)?
+                .visit_field::<u64>("parent_slot", Self::VT_PARENT_SLOT, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
+                    "parent_blockhash",
+                    Self::VT_PARENT_BLOCKHASH,
+                    false,
+                )?
+                .visit_field::<u64>(
+                    "executed_transaction_count",
+                    Self::VT_EXECUTED_TRANSACTION_COUNT,
+                    false,
+                )?
                 .finish();
             Ok(())
         }
@@ -144,6 +194,9 @@ pub mod block_info {
         >,
         pub block_time: i64,
         pub block_height: u64,
+        pub parent_slot: Option<u64>,
+        pub parent_blockhash: Option<flatbuffers::WIPOffset<&'a str>>,
+        pub executed_transaction_count: Option<u64>,
     }
     impl<'a> Default for BlockInfoArgs<'a> {
         #[inline]
@@ -154,6 +207,9 @@ pub mod block_info {
                 rewards: None,
                 block_time: 0,
                 block_height: 0,
+                parent_slot: None,
+                parent_blockhash: None,
+                executed_transaction_count: None,
             }
         }
     }
@@ -193,6 +249,25 @@ pub mod block_info {
                 .push_slot::<u64>(BlockInfo::VT_BLOCK_HEIGHT, block_height, 0);
         }
         #[inline]
+        pub fn add_parent_slot(&mut self, parent_slot: u64) {
+            self.fbb_
+                .push_slot_always::<u64>(BlockInfo::VT_PARENT_SLOT, parent_slot);
+        }
+        #[inline]
+        pub fn add_parent_blockhash(&mut self, parent_blockhash: flatbuffers::WIPOffset<&'b str>) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                BlockInfo::VT_PARENT_BLOCKHASH,
+                parent_blockhash,
+            );
+        }
+        #[inline]
+        pub fn add_executed_transaction_count(&mut self, executed_transaction_count: u64) {
+            self.fbb_.push_slot_always::<u64>(
+                BlockInfo::VT_EXECUTED_TRANSACTION_COUNT,
+                executed_transaction_count,
+            );
+        }
+        #[inline]
         pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> BlockInfoBuilder<'a, 'b> {
             let start = _fbb.start_table();
             BlockInfoBuilder {
@@ -215,6 +290,12 @@ pub mod block_info {
             ds.field("rewards", &self.rewards());
             ds.field("block_time", &self.block_time());
             ds.field("block_height", &self.block_height());
+            ds.field("parent_slot", &self.parent_slot());
+            ds.field("parent_blockhash", &self.parent_blockhash());
+            ds.field(
+                "executed_transaction_count",
+                &self.executed_transaction_count(),
+            );
             ds.finish()
         }
     }

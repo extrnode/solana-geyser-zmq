@@ -70,6 +70,9 @@ enum TransactionErrorType: uint8 {
     WouldExceedAccountDataTotalLimit,
     DuplicateInstruction,
     InsufficientFundsForRent,
+    MaxLoadedAccountsDataSizeExceeded,
+    InvalidLoadedAccountsDataSizeLimit,
+    ResanitizationNeeded
 }
 
 enum InstructionErrorType: uint8 {
@@ -123,8 +126,10 @@ enum InstructionErrorType: uint8 {
     ArithmeticOverflow,
     UnsupportedSysvar,
     IllegalOwner,
-    MaxAccountsDataSizeExceeded,
+    MaxAccountsDataAllocationsExceeded,
     MaxAccountsExceeded,
+    MaxInstructionTraceLengthExceeded,
+    BuiltinProgramsMustConsumeComputeUnits
 }
 
 union TransactionErrorData {

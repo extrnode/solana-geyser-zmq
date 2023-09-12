@@ -23,13 +23,13 @@ pub mod transaction_info {
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
-    pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 31;
+    pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 34;
     #[deprecated(
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
-    pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 32] = [
+    pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 35] = [
         TransactionErrorType::AccountInUse,
         TransactionErrorType::AccountLoadedTwice,
         TransactionErrorType::AccountNotFound,
@@ -62,6 +62,9 @@ pub mod transaction_info {
         TransactionErrorType::WouldExceedAccountDataTotalLimit,
         TransactionErrorType::DuplicateInstruction,
         TransactionErrorType::InsufficientFundsForRent,
+        TransactionErrorType::MaxLoadedAccountsDataSizeExceeded,
+        TransactionErrorType::InvalidLoadedAccountsDataSizeLimit,
+        TransactionErrorType::ResanitizationNeeded,
     ];
 
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -101,9 +104,12 @@ pub mod transaction_info {
         pub const WouldExceedAccountDataTotalLimit: Self = Self(29);
         pub const DuplicateInstruction: Self = Self(30);
         pub const InsufficientFundsForRent: Self = Self(31);
+        pub const MaxLoadedAccountsDataSizeExceeded: Self = Self(32);
+        pub const InvalidLoadedAccountsDataSizeLimit: Self = Self(33);
+        pub const ResanitizationNeeded: Self = Self(34);
 
         pub const ENUM_MIN: u8 = 0;
-        pub const ENUM_MAX: u8 = 31;
+        pub const ENUM_MAX: u8 = 34;
         pub const ENUM_VALUES: &'static [Self] = &[
             Self::AccountInUse,
             Self::AccountLoadedTwice,
@@ -137,6 +143,9 @@ pub mod transaction_info {
             Self::WouldExceedAccountDataTotalLimit,
             Self::DuplicateInstruction,
             Self::InsufficientFundsForRent,
+            Self::MaxLoadedAccountsDataSizeExceeded,
+            Self::InvalidLoadedAccountsDataSizeLimit,
+            Self::ResanitizationNeeded,
         ];
         /// Returns the variant's name or "" if unknown.
         pub fn variant_name(self) -> Option<&'static str> {
@@ -173,6 +182,13 @@ pub mod transaction_info {
                 Self::WouldExceedAccountDataTotalLimit => Some("WouldExceedAccountDataTotalLimit"),
                 Self::DuplicateInstruction => Some("DuplicateInstruction"),
                 Self::InsufficientFundsForRent => Some("InsufficientFundsForRent"),
+                Self::MaxLoadedAccountsDataSizeExceeded => {
+                    Some("MaxLoadedAccountsDataSizeExceeded")
+                }
+                Self::InvalidLoadedAccountsDataSizeLimit => {
+                    Some("InvalidLoadedAccountsDataSizeLimit")
+                }
+                Self::ResanitizationNeeded => Some("ResanitizationNeeded"),
                 _ => None,
             }
         }
@@ -238,13 +254,13 @@ pub mod transaction_info {
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
-    pub const ENUM_MAX_INSTRUCTION_ERROR_TYPE: u8 = 51;
+    pub const ENUM_MAX_INSTRUCTION_ERROR_TYPE: u8 = 53;
     #[deprecated(
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
-    pub const ENUM_VALUES_INSTRUCTION_ERROR_TYPE: [InstructionErrorType; 52] = [
+    pub const ENUM_VALUES_INSTRUCTION_ERROR_TYPE: [InstructionErrorType; 54] = [
         InstructionErrorType::GenericError,
         InstructionErrorType::InvalidArgument,
         InstructionErrorType::InvalidInstructionData,
@@ -295,8 +311,10 @@ pub mod transaction_info {
         InstructionErrorType::ArithmeticOverflow,
         InstructionErrorType::UnsupportedSysvar,
         InstructionErrorType::IllegalOwner,
-        InstructionErrorType::MaxAccountsDataSizeExceeded,
+        InstructionErrorType::MaxAccountsDataAllocationsExceeded,
         InstructionErrorType::MaxAccountsExceeded,
+        InstructionErrorType::MaxInstructionTraceLengthExceeded,
+        InstructionErrorType::BuiltinProgramsMustConsumeComputeUnits,
     ];
 
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -354,11 +372,13 @@ pub mod transaction_info {
         pub const ArithmeticOverflow: Self = Self(47);
         pub const UnsupportedSysvar: Self = Self(48);
         pub const IllegalOwner: Self = Self(49);
-        pub const MaxAccountsDataSizeExceeded: Self = Self(50);
+        pub const MaxAccountsDataAllocationsExceeded: Self = Self(50);
         pub const MaxAccountsExceeded: Self = Self(51);
+        pub const MaxInstructionTraceLengthExceeded: Self = Self(52);
+        pub const BuiltinProgramsMustConsumeComputeUnits: Self = Self(53);
 
         pub const ENUM_MIN: u8 = 0;
-        pub const ENUM_MAX: u8 = 51;
+        pub const ENUM_MAX: u8 = 53;
         pub const ENUM_VALUES: &'static [Self] = &[
             Self::GenericError,
             Self::InvalidArgument,
@@ -410,8 +430,10 @@ pub mod transaction_info {
             Self::ArithmeticOverflow,
             Self::UnsupportedSysvar,
             Self::IllegalOwner,
-            Self::MaxAccountsDataSizeExceeded,
+            Self::MaxAccountsDataAllocationsExceeded,
             Self::MaxAccountsExceeded,
+            Self::MaxInstructionTraceLengthExceeded,
+            Self::BuiltinProgramsMustConsumeComputeUnits,
         ];
         /// Returns the variant's name or "" if unknown.
         pub fn variant_name(self) -> Option<&'static str> {
@@ -466,8 +488,16 @@ pub mod transaction_info {
                 Self::ArithmeticOverflow => Some("ArithmeticOverflow"),
                 Self::UnsupportedSysvar => Some("UnsupportedSysvar"),
                 Self::IllegalOwner => Some("IllegalOwner"),
-                Self::MaxAccountsDataSizeExceeded => Some("MaxAccountsDataSizeExceeded"),
+                Self::MaxAccountsDataAllocationsExceeded => {
+                    Some("MaxAccountsDataAllocationsExceeded")
+                }
                 Self::MaxAccountsExceeded => Some("MaxAccountsExceeded"),
+                Self::MaxInstructionTraceLengthExceeded => {
+                    Some("MaxInstructionTraceLengthExceeded")
+                }
+                Self::BuiltinProgramsMustConsumeComputeUnits => {
+                    Some("BuiltinProgramsMustConsumeComputeUnits")
+                }
                 _ => None,
             }
         }
