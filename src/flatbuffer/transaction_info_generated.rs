@@ -871,6 +871,7 @@ pub mod transaction_info {
         pub const VT_LOADED_ADDRESSES_STRING: flatbuffers::VOffsetT = 30;
         pub const VT_PRE_TOKEN_BALANCES_PTR: flatbuffers::VOffsetT = 32;
         pub const VT_POST_TOKEN_BALANCES_PTR: flatbuffers::VOffsetT = 34;
+        pub const VT_INNER_INSTRUCTIONS: flatbuffers::VOffsetT = 36;
 
         #[inline]
         pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -889,6 +890,9 @@ pub mod transaction_info {
                 builder.add_compute_units_consumed(x);
             }
             builder.add_slot(args.slot);
+            if let Some(x) = args.inner_instructions {
+                builder.add_inner_instructions(x);
+            }
             if let Some(x) = args.post_token_balances_ptr {
                 builder.add_post_token_balances_ptr(x);
             }
@@ -1121,6 +1125,20 @@ pub mod transaction_info {
                 >>(TransactionInfo::VT_POST_TOKEN_BALANCES_PTR, None)
             }
         }
+        #[inline]
+        pub fn inner_instructions(
+            &self,
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<NewInnerInstructions<'a>>>>
+        {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<NewInnerInstructions>>,
+                >>(TransactionInfo::VT_INNER_INSTRUCTIONS, None)
+            }
+        }
     }
 
     impl flatbuffers::Verifiable for TransactionInfo<'_> {
@@ -1195,6 +1213,9 @@ pub mod transaction_info {
                     Self::VT_POST_TOKEN_BALANCES_PTR,
                     false,
                 )?
+                .visit_field::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<NewInnerInstructions>>,
+                >>("inner_instructions", Self::VT_INNER_INSTRUCTIONS, false)?
                 .finish();
             Ok(())
         }
@@ -1230,6 +1251,11 @@ pub mod transaction_info {
                 flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<UiTokenAmountPtr<'a>>>,
             >,
         >,
+        pub inner_instructions: Option<
+            flatbuffers::WIPOffset<
+                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<NewInnerInstructions<'a>>>,
+            >,
+        >,
     }
     impl<'a> Default for TransactionInfoArgs<'a> {
         #[inline]
@@ -1251,6 +1277,7 @@ pub mod transaction_info {
                 loaded_addresses_string: None,
                 pre_token_balances_ptr: None,
                 post_token_balances_ptr: None,
+                inner_instructions: None,
             }
         }
     }
@@ -1405,6 +1432,18 @@ pub mod transaction_info {
             );
         }
         #[inline]
+        pub fn add_inner_instructions(
+            &mut self,
+            inner_instructions: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<NewInnerInstructions<'b>>>,
+            >,
+        ) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                TransactionInfo::VT_INNER_INSTRUCTIONS,
+                inner_instructions,
+            );
+        }
+        #[inline]
         pub fn new(
             _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
         ) -> TransactionInfoBuilder<'a, 'b> {
@@ -1440,6 +1479,7 @@ pub mod transaction_info {
             ds.field("loaded_addresses_string", &self.loaded_addresses_string());
             ds.field("pre_token_balances_ptr", &self.pre_token_balances_ptr());
             ds.field("post_token_balances_ptr", &self.post_token_balances_ptr());
+            ds.field("inner_instructions", &self.inner_instructions());
             ds.finish()
         }
     }
@@ -3440,6 +3480,295 @@ pub mod transaction_info {
             ds.field("pre_token_balances", &self.pre_token_balances());
             ds.field("post_token_balances", &self.post_token_balances());
             ds.field("rewards", &self.rewards());
+            ds.finish()
+        }
+    }
+    pub enum NewInnerInstructionsOffset {}
+    #[derive(Copy, Clone, PartialEq)]
+
+    pub struct NewInnerInstructions<'a> {
+        pub _tab: flatbuffers::Table<'a>,
+    }
+
+    impl<'a> flatbuffers::Follow<'a> for NewInnerInstructions<'a> {
+        type Inner = NewInnerInstructions<'a>;
+        #[inline]
+        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+            Self {
+                _tab: flatbuffers::Table::new(buf, loc),
+            }
+        }
+    }
+
+    impl<'a> NewInnerInstructions<'a> {
+        pub const VT_INDEX: flatbuffers::VOffsetT = 4;
+        pub const VT_INSTRUCTIONS: flatbuffers::VOffsetT = 6;
+
+        #[inline]
+        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+            NewInnerInstructions { _tab: table }
+        }
+        #[allow(unused_mut)]
+        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+            args: &'args NewInnerInstructionsArgs<'args>,
+        ) -> flatbuffers::WIPOffset<NewInnerInstructions<'bldr>> {
+            let mut builder = NewInnerInstructionsBuilder::new(_fbb);
+            if let Some(x) = args.instructions {
+                builder.add_instructions(x);
+            }
+            builder.add_index(args.index);
+            builder.finish()
+        }
+
+        #[inline]
+        pub fn index(&self) -> u8 {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<u8>(NewInnerInstructions::VT_INDEX, Some(0))
+                    .unwrap()
+            }
+        }
+        #[inline]
+        pub fn instructions(
+            &self,
+        ) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<NewInnerInstruction<'a>>>>
+        {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab.get::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<NewInnerInstruction>>,
+                >>(NewInnerInstructions::VT_INSTRUCTIONS, None)
+            }
+        }
+    }
+
+    impl flatbuffers::Verifiable for NewInnerInstructions<'_> {
+        #[inline]
+        fn run_verifier(
+            v: &mut flatbuffers::Verifier,
+            pos: usize,
+        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+            use self::flatbuffers::Verifiable;
+            v.visit_table(pos)?
+                .visit_field::<u8>("index", Self::VT_INDEX, false)?
+                .visit_field::<flatbuffers::ForwardsUOffset<
+                    flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<NewInnerInstruction>>,
+                >>("instructions", Self::VT_INSTRUCTIONS, false)?
+                .finish();
+            Ok(())
+        }
+    }
+    pub struct NewInnerInstructionsArgs<'a> {
+        pub index: u8,
+        pub instructions: Option<
+            flatbuffers::WIPOffset<
+                flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<NewInnerInstruction<'a>>>,
+            >,
+        >,
+    }
+    impl<'a> Default for NewInnerInstructionsArgs<'a> {
+        #[inline]
+        fn default() -> Self {
+            NewInnerInstructionsArgs {
+                index: 0,
+                instructions: None,
+            }
+        }
+    }
+
+    pub struct NewInnerInstructionsBuilder<'a: 'b, 'b> {
+        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+    }
+    impl<'a: 'b, 'b> NewInnerInstructionsBuilder<'a, 'b> {
+        #[inline]
+        pub fn add_index(&mut self, index: u8) {
+            self.fbb_
+                .push_slot::<u8>(NewInnerInstructions::VT_INDEX, index, 0);
+        }
+        #[inline]
+        pub fn add_instructions(
+            &mut self,
+            instructions: flatbuffers::WIPOffset<
+                flatbuffers::Vector<'b, flatbuffers::ForwardsUOffset<NewInnerInstruction<'b>>>,
+            >,
+        ) {
+            self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
+                NewInnerInstructions::VT_INSTRUCTIONS,
+                instructions,
+            );
+        }
+        #[inline]
+        pub fn new(
+            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        ) -> NewInnerInstructionsBuilder<'a, 'b> {
+            let start = _fbb.start_table();
+            NewInnerInstructionsBuilder {
+                fbb_: _fbb,
+                start_: start,
+            }
+        }
+        #[inline]
+        pub fn finish(self) -> flatbuffers::WIPOffset<NewInnerInstructions<'a>> {
+            let o = self.fbb_.end_table(self.start_);
+            flatbuffers::WIPOffset::new(o.value())
+        }
+    }
+
+    impl core::fmt::Debug for NewInnerInstructions<'_> {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            let mut ds = f.debug_struct("NewInnerInstructions");
+            ds.field("index", &self.index());
+            ds.field("instructions", &self.instructions());
+            ds.finish()
+        }
+    }
+    pub enum NewInnerInstructionOffset {}
+    #[derive(Copy, Clone, PartialEq)]
+
+    pub struct NewInnerInstruction<'a> {
+        pub _tab: flatbuffers::Table<'a>,
+    }
+
+    impl<'a> flatbuffers::Follow<'a> for NewInnerInstruction<'a> {
+        type Inner = NewInnerInstruction<'a>;
+        #[inline]
+        unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+            Self {
+                _tab: flatbuffers::Table::new(buf, loc),
+            }
+        }
+    }
+
+    impl<'a> NewInnerInstruction<'a> {
+        pub const VT_INSTRUCTION: flatbuffers::VOffsetT = 4;
+        pub const VT_STACK_HEIGHT: flatbuffers::VOffsetT = 6;
+
+        #[inline]
+        pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+            NewInnerInstruction { _tab: table }
+        }
+        #[allow(unused_mut)]
+        pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+            _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+            args: &'args NewInnerInstructionArgs<'args>,
+        ) -> flatbuffers::WIPOffset<NewInnerInstruction<'bldr>> {
+            let mut builder = NewInnerInstructionBuilder::new(_fbb);
+            if let Some(x) = args.stack_height {
+                builder.add_stack_height(x);
+            }
+            if let Some(x) = args.instruction {
+                builder.add_instruction(x);
+            }
+            builder.finish()
+        }
+
+        #[inline]
+        pub fn instruction(&self) -> Option<CompiledInstruction<'a>> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<flatbuffers::ForwardsUOffset<CompiledInstruction>>(
+                        NewInnerInstruction::VT_INSTRUCTION,
+                        None,
+                    )
+            }
+        }
+        #[inline]
+        pub fn stack_height(&self) -> Option<u32> {
+            // Safety:
+            // Created from valid Table for this object
+            // which contains a valid value in this slot
+            unsafe {
+                self._tab
+                    .get::<u32>(NewInnerInstruction::VT_STACK_HEIGHT, None)
+            }
+        }
+    }
+
+    impl flatbuffers::Verifiable for NewInnerInstruction<'_> {
+        #[inline]
+        fn run_verifier(
+            v: &mut flatbuffers::Verifier,
+            pos: usize,
+        ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+            use self::flatbuffers::Verifiable;
+            v.visit_table(pos)?
+                .visit_field::<flatbuffers::ForwardsUOffset<CompiledInstruction>>(
+                    "instruction",
+                    Self::VT_INSTRUCTION,
+                    false,
+                )?
+                .visit_field::<u32>("stack_height", Self::VT_STACK_HEIGHT, false)?
+                .finish();
+            Ok(())
+        }
+    }
+    pub struct NewInnerInstructionArgs<'a> {
+        pub instruction: Option<flatbuffers::WIPOffset<CompiledInstruction<'a>>>,
+        pub stack_height: Option<u32>,
+    }
+    impl<'a> Default for NewInnerInstructionArgs<'a> {
+        #[inline]
+        fn default() -> Self {
+            NewInnerInstructionArgs {
+                instruction: None,
+                stack_height: None,
+            }
+        }
+    }
+
+    pub struct NewInnerInstructionBuilder<'a: 'b, 'b> {
+        fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+    }
+    impl<'a: 'b, 'b> NewInnerInstructionBuilder<'a, 'b> {
+        #[inline]
+        pub fn add_instruction(
+            &mut self,
+            instruction: flatbuffers::WIPOffset<CompiledInstruction<'b>>,
+        ) {
+            self.fbb_
+                .push_slot_always::<flatbuffers::WIPOffset<CompiledInstruction>>(
+                    NewInnerInstruction::VT_INSTRUCTION,
+                    instruction,
+                );
+        }
+        #[inline]
+        pub fn add_stack_height(&mut self, stack_height: u32) {
+            self.fbb_
+                .push_slot_always::<u32>(NewInnerInstruction::VT_STACK_HEIGHT, stack_height);
+        }
+        #[inline]
+        pub fn new(
+            _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+        ) -> NewInnerInstructionBuilder<'a, 'b> {
+            let start = _fbb.start_table();
+            NewInnerInstructionBuilder {
+                fbb_: _fbb,
+                start_: start,
+            }
+        }
+        #[inline]
+        pub fn finish(self) -> flatbuffers::WIPOffset<NewInnerInstruction<'a>> {
+            let o = self.fbb_.end_table(self.start_);
+            flatbuffers::WIPOffset::new(o.value())
+        }
+    }
+
+    impl core::fmt::Debug for NewInnerInstruction<'_> {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            let mut ds = f.debug_struct("NewInnerInstruction");
+            ds.field("instruction", &self.instruction());
+            ds.field("stack_height", &self.stack_height());
             ds.finish()
         }
     }
