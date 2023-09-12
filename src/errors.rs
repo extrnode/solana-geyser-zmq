@@ -5,6 +5,9 @@ pub enum GeyserError {
     #[error("tcp send error")]
     TcpSend(u64),
 
+    #[error("tcp send error due to subscriber disconnect")]
+    TcpDisconnects(u64),
+
     #[error("cannot acquire sender lock")]
     SenderLockError,
 
