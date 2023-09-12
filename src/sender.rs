@@ -83,6 +83,7 @@ impl TcpSender {
             if let Err(e) = self.publish_batch(buffer.flush_data()) {
                 if self.strict_delivery {
                     // for strict delivery, try_send until there's no error
+                    thread::sleep(time::Duration::from_secs(1));
                     continue;
                 } else {
                     // for regular mode just return error
