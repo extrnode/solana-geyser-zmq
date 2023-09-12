@@ -1,14 +1,19 @@
-use log::{error, info};
+use core::time;
+use log::{error, info, warn};
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::net::TcpListener;
 use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
+use uuid::Uuid;
 
 use crate::errors::GeyserError;
 
 const DEFAULT_VECTOR_PREALLOC: usize = 1024 * 1024;
 pub const HEADER_BYTE_SIZE: usize = 4;
+
+type ConnectionMap = HashMap<String, SyncSender<Vec<u8>>>;
 
 pub struct TcpBuffer {
     data: Vec<Vec<u8>>,
@@ -42,15 +47,19 @@ impl TcpBuffer {
 
 pub struct TcpSender {
     batch_max_bytes: usize,
-    conns: Arc<RwLock<Vec<SyncSender<Vec<u8>>>>>,
+    strict_delivery: bool,
+    min_subscribers: usize,
+    conns: Arc<RwLock<ConnectionMap>>,
     buffer: Mutex<TcpBuffer>,
 }
 
 impl TcpSender {
-    pub fn new(batch_max_bytes: usize) -> Self {
+    pub fn new(batch_max_bytes: usize, strict_delivery: bool, min_subscribers: usize) -> Self {
         TcpSender {
             batch_max_bytes,
-            conns: Arc::new(RwLock::new(Vec::new())),
+            strict_delivery,
+            min_subscribers,
+            conns: Arc::new(RwLock::new(HashMap::new())),
             buffer: Mutex::new(TcpBuffer {
                 data: Vec::with_capacity(DEFAULT_VECTOR_PREALLOC),
                 total_bytesize: 0,
@@ -70,12 +79,54 @@ impl TcpSender {
             return Ok(());
         }
 
-        self.publish_batch(buffer.flush_data())
+        loop {
+            if let Err(e) = self.publish_batch(buffer.flush_data()) {
+                if self.strict_delivery {
+                    // for strict delivery, try_send until there's no error
+                    thread::sleep(time::Duration::from_secs(1));
+                    continue;
+                } else {
+                    // for regular mode just return error
+                    return Err(e);
+                }
+            }
+
+            break;
+        }
+
+        Ok(())
+    }
+
+    pub fn wait_min_subscribers(&self) -> Result<(), GeyserError> {
+        if self.min_subscribers > 0 {
+            loop {
+                let conns = {
+                    let conns = self
+                        .conns
+                        .read()
+                        .map_err(|_| GeyserError::SenderLockError)?;
+
+                    conns.len()
+                };
+
+                if conns >= self.min_subscribers {
+                    break;
+                }
+
+                warn!("not enough subscribers {}/{}", conns, self.min_subscribers);
+
+                thread::sleep(time::Duration::from_secs(1));
+            }
+        }
+
+        Ok(())
     }
 
     pub fn publish_batch(&self, batch: Vec<u8>) -> Result<(), GeyserError> {
-        let mut conns_to_remove = Vec::new();
         let mut send_errs = 0;
+        let mut disconnects = 0;
+
+        self.wait_min_subscribers()?;
 
         {
             let conns = self
@@ -83,33 +134,26 @@ impl TcpSender {
                 .read()
                 .map_err(|_| GeyserError::SenderLockError)?;
 
-            for (i, conn) in conns.iter().enumerate() {
+            for (_, conn) in conns.iter() {
                 if let Err(e) = conn.try_send(batch.clone()) {
                     match e {
                         TrySendError::Full(..) => {
                             send_errs += 1;
                         }
                         _ => {
-                            conns_to_remove.push(i);
+                            disconnects += 1;
                         }
                     }
                 }
             }
         }
 
-        if !conns_to_remove.is_empty() {
-            let mut conns = self
-                .conns
-                .write()
-                .map_err(|_| GeyserError::SenderLockError)?;
-
-            conns_to_remove.iter().rev().for_each(|&i| {
-                conns.remove(i);
-            });
-        }
-
         if send_errs > 0 {
             return Err(GeyserError::TcpSend(send_errs));
+        }
+
+        if disconnects > 0 {
+            return Err(GeyserError::TcpDisconnects(disconnects));
         }
 
         Ok(())
@@ -128,7 +172,9 @@ impl TcpSender {
                     Ok(mut stream) => {
                         let conns = conns.clone();
                         let (tx, rx) = sync_channel(buffer_size);
-                        if Self::add_conn(&conns, tx).is_err() {
+                        let conn_id = Uuid::new_v4().to_string();
+
+                        if Self::add_conn(&conns, tx, conn_id.clone()).is_err() {
                             continue;
                         }
 
@@ -139,6 +185,9 @@ impl TcpSender {
                                     break;
                                 }
                             }
+
+                            // drop connection
+                            Self::remove_conn(&conns, &conn_id)
                         });
                     }
                     Err(e) => {
@@ -152,11 +201,18 @@ impl TcpSender {
     }
 
     fn add_conn(
-        conns: &Arc<RwLock<Vec<SyncSender<Vec<u8>>>>>,
+        conns: &Arc<RwLock<ConnectionMap>>,
         conn: SyncSender<Vec<u8>>,
+        id: String,
     ) -> Result<(), GeyserError> {
         let mut conns = conns.write().map_err(|_| GeyserError::ConnLockError)?;
-        conns.push(conn);
+        conns.insert(id, conn);
+        Ok(())
+    }
+
+    fn remove_conn(conns: &Arc<RwLock<ConnectionMap>>, id: &String) -> Result<(), GeyserError> {
+        let mut conns = conns.write().map_err(|_| GeyserError::ConnLockError)?;
+        conns.remove(id);
         Ok(())
     }
 }
@@ -171,7 +227,7 @@ mod tests {
 
     #[test]
     fn test_sender() {
-        let sender = TcpSender::new(10);
+        let sender = TcpSender::new(10, false, 0);
         sender.bind(9050, 100).unwrap();
 
         let received_count = Arc::new(Mutex::new(0));
