@@ -49,6 +49,12 @@ impl GeyserPluginHook {
                                     .send_errs
                                     .fetch_add(*amount, Ordering::Relaxed);
                             }
+                            GeyserError::TcpDisconnects(amount) => {
+                                inner
+                                    .metrics
+                                    .disconnect_errs
+                                    .fetch_add(*amount, Ordering::Relaxed);
+                            }
                             GeyserError::TxSerializeError => {
                                 inner.metrics.serialize_errs.fetch_add(1, Ordering::Relaxed);
                             }
@@ -96,7 +102,11 @@ impl GeyserPlugin for GeyserPluginHook {
 
         let cfg = Config::read(config_file).unwrap();
 
-        let socket = TcpSender::new(cfg.tcp_batch_max_bytes);
+        let socket = TcpSender::new(
+            cfg.tcp_batch_max_bytes,
+            cfg.tcp_strict_delivery.unwrap_or(false),
+            cfg.tcp_min_subscribers.unwrap_or(0),
+        );
         socket.bind(cfg.tcp_port, cfg.tcp_buffer_size).unwrap();
 
         info!("[on_load] - socket created");

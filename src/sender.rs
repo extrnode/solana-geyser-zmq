@@ -1,4 +1,5 @@
-use log::{error, info};
+use core::time;
+use log::{error, info, warn};
 use std::io::{self, Write};
 use std::net::TcpListener;
 use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
@@ -42,14 +43,18 @@ impl TcpBuffer {
 
 pub struct TcpSender {
     batch_max_bytes: usize,
+    strict_delivery: bool,
+    min_subscribers: usize,
     conns: Arc<RwLock<Vec<SyncSender<Vec<u8>>>>>,
     buffer: Mutex<TcpBuffer>,
 }
 
 impl TcpSender {
-    pub fn new(batch_max_bytes: usize) -> Self {
+    pub fn new(batch_max_bytes: usize, strict_delivery: bool, min_subscribers: usize) -> Self {
         TcpSender {
             batch_max_bytes,
+            strict_delivery,
+            min_subscribers,
             conns: Arc::new(RwLock::new(Vec::new())),
             buffer: Mutex::new(TcpBuffer {
                 data: Vec::with_capacity(DEFAULT_VECTOR_PREALLOC),
@@ -70,12 +75,54 @@ impl TcpSender {
             return Ok(());
         }
 
-        self.publish_batch(buffer.flush_data())
+        loop {
+            if let Err(e) = self.publish_batch(buffer.flush_data()) {
+                if self.strict_delivery {
+                    // for strict delivery, try_send until there's no error
+                    continue;
+                } else {
+                    // for regular mode just return error
+                    return Err(e);
+                }
+            }
+
+            break;
+        }
+
+        Ok(())
+    }
+
+    pub fn wait_min_subscribers(&self) -> Result<(), GeyserError> {
+        if self.min_subscribers > 0 {
+            loop {
+                let conns = {
+                    let conns = self
+                        .conns
+                        .read()
+                        .map_err(|_| GeyserError::SenderLockError)?;
+
+                    conns.len()
+                };
+
+                if conns >= self.min_subscribers {
+                    break;
+                }
+
+                warn!("not enough subscribers {}/{}", conns, self.min_subscribers);
+
+                thread::sleep(time::Duration::from_secs(1));
+            }
+        }
+
+        Ok(())
     }
 
     pub fn publish_batch(&self, batch: Vec<u8>) -> Result<(), GeyserError> {
         let mut conns_to_remove = Vec::new();
         let mut send_errs = 0;
+        let mut disconnects = 0;
+
+        self.wait_min_subscribers()?;
 
         {
             let conns = self
@@ -90,6 +137,7 @@ impl TcpSender {
                             send_errs += 1;
                         }
                         _ => {
+                            disconnects += 1;
                             conns_to_remove.push(i);
                         }
                     }
@@ -110,6 +158,10 @@ impl TcpSender {
 
         if send_errs > 0 {
             return Err(GeyserError::TcpSend(send_errs));
+        }
+
+        if disconnects > 0 {
+            return Err(GeyserError::TcpDisconnects(disconnects));
         }
 
         Ok(())
@@ -171,7 +223,7 @@ mod tests {
 
     #[test]
     fn test_sender() {
-        let sender = TcpSender::new(10);
+        let sender = TcpSender::new(10, false, 0);
         sender.bind(9050, 100).unwrap();
 
         let received_count = Arc::new(Mutex::new(0));
