@@ -1,3 +1,4 @@
+use crate::errors::GeyserError;
 use crate::flatbuffer::common_generated::common::{Reward, RewardArgs, RewardType};
 use crate::flatbuffer::transaction_info_generated;
 use crate::flatbuffer::transaction_info_generated::transaction_info::{
@@ -14,7 +15,147 @@ use crate::flatbuffer::transaction_info_generated::transaction_info::{
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use solana_transaction_status::{Rewards, UiReturnDataEncoding, UiTransactionReturnData};
 
-pub fn extract_inner_instructions<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+pub struct TxInfoArgs<'a> {
+    pub transaction_serialized: Option<WIPOffset<Vector<'a, u8>>>,
+    pub loaded_addresses_string: Option<WIPOffset<LoadedAddressesString<'a>>>,
+    pub memo: Option<WIPOffset<&'a str>>,
+    pub account_keys_string: Option<WIPOffset<Vector<'a, ForwardsUOffset<&'a str>>>>,
+}
+
+pub struct TxMetaArgs<'a> {
+    pub meta: Option<WIPOffset<TransactionStatusMeta<'a>>>,
+    pub pre_token_balances_ptr:
+        Option<WIPOffset<Vector<'a, ForwardsUOffset<UiTokenAmountPtr<'a>>>>>,
+    pub post_token_balances_ptr:
+        Option<WIPOffset<Vector<'a, ForwardsUOffset<UiTokenAmountPtr<'a>>>>>,
+    pub inner_instructions:
+        Option<WIPOffset<Vector<'a, ForwardsUOffset<NewInnerInstructions<'a>>>>>,
+    pub return_data: Option<WIPOffset<TransactionReturnData<'a>>>,
+}
+
+pub fn extract_tx_meta_args<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    transaction_meta: &'args solana_transaction_status::TransactionStatusMeta,
+    builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
+) -> TxMetaArgs<'bldr> {
+    let meta = extract_meta(transaction_meta, builder);
+
+    let pre_token_balances_ptr =
+        extract_token_balances_ptr(&transaction_meta.pre_token_balances, builder);
+    let post_token_balances_ptr =
+        extract_token_balances_ptr(&transaction_meta.post_token_balances, builder);
+
+    let inner_instructions =
+        extract_inner_instructions(&transaction_meta.inner_instructions, builder);
+    let return_data = extract_return_data(&transaction_meta.return_data, builder);
+
+    TxMetaArgs {
+        meta,
+        pre_token_balances_ptr,
+        post_token_balances_ptr,
+        inner_instructions,
+        return_data,
+    }
+}
+
+pub fn extract_tx_info_args<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    transaction: &'args solana_sdk::transaction::SanitizedTransaction,
+    builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
+) -> Result<TxInfoArgs<'bldr>, GeyserError> {
+    let transaction_serialized = bincode::serialize(&transaction.to_versioned_transaction())
+        .map_err(|_| GeyserError::TxSerializeError)?;
+    let transaction_serialized = Some(builder.create_vector(&transaction_serialized));
+
+    let loaded_addresses_string = extract_loaded_addresses_string(transaction.message(), builder);
+
+    let memo =
+        solana_transaction_status::extract_memos::extract_and_fmt_memos(transaction.message())
+            .map(|m| builder.create_string(&m));
+
+    let account_keys = transaction
+        .message()
+        .account_keys()
+        .iter()
+        .map(|key| builder.create_string(key.to_string().as_str()))
+        .collect::<Vec<_>>();
+    let account_keys_string = Some(builder.create_vector(account_keys.as_ref()));
+
+    Ok(TxInfoArgs {
+        transaction_serialized,
+        loaded_addresses_string,
+        memo,
+        account_keys_string,
+    })
+}
+
+pub fn extract_rewards<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    rewards: &'args Option<Rewards>,
+    builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
+) -> Option<WIPOffset<Vector<'bldr, ForwardsUOffset<Reward<'bldr>>>>> {
+    if rewards.is_none() {
+        return None;
+    }
+    let rewards = rewards.as_ref().unwrap();
+
+    let mut rewards_vec = Vec::with_capacity(rewards.len());
+    for reward in rewards {
+        let pubkey = Some(builder.create_string(&reward.pubkey));
+
+        rewards_vec.push(Reward::create(
+            builder,
+            &RewardArgs {
+                pubkey,
+                lamports: reward.lamports,
+                post_balance: reward.post_balance,
+                reward_type: extract_reward_type(reward.reward_type),
+                commission: reward.commission,
+            },
+        ));
+    }
+
+    Some(builder.create_vector(rewards_vec.as_ref()))
+}
+
+fn extract_meta<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    meta: &'args solana_transaction_status::TransactionStatusMeta,
+    builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
+) -> Option<WIPOffset<TransactionStatusMeta<'bldr>>> {
+    let pre_token_balances = extract_token_balances(&meta.pre_token_balances, builder);
+    let post_token_balances = extract_token_balances(&meta.post_token_balances, builder);
+
+    let rewards = extract_rewards(&meta.rewards, builder);
+
+    let pre_balances = Some(builder.create_vector(meta.pre_balances.as_ref()));
+    let post_balances = Some(builder.create_vector(meta.post_balances.as_ref()));
+
+    let log_messages = if let Some(logs) = &meta.log_messages {
+        let log_messages = logs
+            .iter()
+            .map(|log| builder.create_string(log))
+            .collect::<Vec<_>>();
+        Some(builder.create_vector(log_messages.as_ref()))
+    } else {
+        None
+    };
+
+    let status = extract_tx_status(&meta.status, builder);
+
+    Some(TransactionStatusMeta::create(
+        builder,
+        &TransactionStatusMetaArgs {
+            status,
+            fee: meta.fee,
+            pre_balances,
+            post_balances,
+            inner_instructions: None,
+            log_messages,
+            pre_token_balances,
+            post_token_balances,
+            rewards,
+        },
+    ))
+}
+
+fn extract_inner_instructions<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     inner_instructions: &'args Option<Vec<solana_transaction_status::InnerInstructions>>,
     builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
 ) -> Option<WIPOffset<Vector<'bldr, ForwardsUOffset<NewInnerInstructions<'bldr>>>>> {
@@ -62,7 +203,31 @@ pub fn extract_inner_instructions<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     Some(builder.create_vector(inner_instructions_vec.as_ref()))
 }
 
-pub fn extract_return_data<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+fn extract_token_balances_ptr<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    token_balance: &'args Option<Vec<solana_transaction_status::TransactionTokenBalance>>,
+    builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
+) -> Option<WIPOffset<Vector<'bldr, ForwardsUOffset<UiTokenAmountPtr<'bldr>>>>> {
+    if token_balance.is_none() {
+        return None;
+    }
+
+    let token_balance = token_balance.as_ref().unwrap();
+
+    let mut token_balances_ptr_vec = Vec::with_capacity(token_balance.len());
+
+    for transaction_token_balance in token_balance {
+        token_balances_ptr_vec.push(UiTokenAmountPtr::create(
+            builder,
+            &UiTokenAmountPtrArgs {
+                amount: transaction_token_balance.ui_token_amount.ui_amount,
+            },
+        ));
+    }
+
+    Some(builder.create_vector(token_balances_ptr_vec.as_ref()))
+}
+
+fn extract_return_data<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     return_data: &'args Option<solana_sdk::transaction_context::TransactionReturnData>,
     builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
 ) -> Option<WIPOffset<TransactionReturnData<'bldr>>> {
@@ -93,47 +258,7 @@ pub fn extract_return_data<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     }
 }
 
-pub fn extract_tx_meta<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-    meta: &'args solana_transaction_status::TransactionStatusMeta,
-    builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
-) -> Option<WIPOffset<TransactionStatusMeta<'bldr>>> {
-    let pre_token_balances = extract_token_balances(&meta.pre_token_balances, builder);
-    let post_token_balances = extract_token_balances(&meta.post_token_balances, builder);
-
-    let rewards = extract_rewards(&meta.rewards, builder);
-
-    let pre_balances = Some(builder.create_vector(meta.pre_balances.as_ref()));
-    let post_balances = Some(builder.create_vector(meta.post_balances.as_ref()));
-
-    let log_messages = if let Some(logs) = &meta.log_messages {
-        let log_messages = logs
-            .iter()
-            .map(|log| builder.create_string(log))
-            .collect::<Vec<_>>();
-        Some(builder.create_vector(log_messages.as_ref()))
-    } else {
-        None
-    };
-
-    let status = extract_tx_status(&meta.status, builder);
-
-    Some(TransactionStatusMeta::create(
-        builder,
-        &TransactionStatusMetaArgs {
-            status,
-            fee: meta.fee,
-            pre_balances,
-            post_balances,
-            inner_instructions: None,
-            log_messages,
-            pre_token_balances,
-            post_token_balances,
-            rewards,
-        },
-    ))
-}
-
-pub fn extract_loaded_addresses_string<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+fn extract_loaded_addresses_string<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     message: &'args solana_program::message::SanitizedMessage,
     builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
 ) -> Option<WIPOffset<LoadedAddressesString<'bldr>>> {
@@ -166,34 +291,6 @@ pub fn extract_loaded_addresses_string<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr
     }
 }
 
-pub fn extract_rewards<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-    rewards: &'args Option<Rewards>,
-    builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
-) -> Option<WIPOffset<Vector<'bldr, ForwardsUOffset<Reward<'bldr>>>>> {
-    if rewards.is_none() {
-        return None;
-    }
-    let rewards = rewards.as_ref().unwrap();
-
-    let mut rewards_vec = Vec::with_capacity(rewards.len());
-    for reward in rewards {
-        let pubkey = Some(builder.create_string(&reward.pubkey));
-
-        rewards_vec.push(Reward::create(
-            builder,
-            &RewardArgs {
-                pubkey,
-                lamports: reward.lamports,
-                post_balance: reward.post_balance,
-                reward_type: extract_reward_type(reward.reward_type),
-                commission: reward.commission,
-            },
-        ));
-    }
-
-    Some(builder.create_vector(rewards_vec.as_ref()))
-}
-
 fn extract_reward_type(reward_type: Option<solana_sdk::reward_type::RewardType>) -> RewardType {
     if reward_type.is_none() {
         return RewardType::None;
@@ -209,7 +306,6 @@ fn extract_reward_type(reward_type: Option<solana_sdk::reward_type::RewardType>)
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn extract_token_balances<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     token_balance: &'args Option<Vec<solana_transaction_status::TransactionTokenBalance>>,
     builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
@@ -256,30 +352,6 @@ fn extract_token_balances<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     }
 
     Some(builder.create_vector(token_balances_vec.as_ref()))
-}
-
-pub fn extract_token_balances_ptr<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-    token_balance: &'args Option<Vec<solana_transaction_status::TransactionTokenBalance>>,
-    builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
-) -> Option<WIPOffset<Vector<'bldr, ForwardsUOffset<UiTokenAmountPtr<'bldr>>>>> {
-    if token_balance.is_none() {
-        return None;
-    }
-
-    let token_balance = token_balance.as_ref().unwrap();
-
-    let mut token_balances_ptr_vec = Vec::with_capacity(token_balance.len());
-
-    for transaction_token_balance in token_balance {
-        token_balances_ptr_vec.push(UiTokenAmountPtr::create(
-            builder,
-            &UiTokenAmountPtrArgs {
-                amount: transaction_token_balance.ui_token_amount.ui_amount,
-            },
-        ));
-    }
-
-    Some(builder.create_vector(token_balances_ptr_vec.as_ref()))
 }
 
 fn extract_tx_status<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(

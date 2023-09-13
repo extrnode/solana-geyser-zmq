@@ -3,10 +3,7 @@ use crate::flatbuffer::account_info_generated::account_info::{AccountInfo, Accou
 use crate::flatbuffer::consts::{
     BYTE_PREFIX_ACCOUNT, BYTE_PREFIX_BLOCK, BYTE_PREFIX_METADATA, BYTE_PREFIX_SLOT, BYTE_PREFIX_TX,
 };
-use crate::flatbuffer::extractors::{
-    extract_inner_instructions, extract_loaded_addresses_string, extract_return_data,
-    extract_rewards, extract_token_balances_ptr, extract_tx_meta,
-};
+use crate::flatbuffer::extractors::{extract_rewards, extract_tx_info_args, extract_tx_meta_args};
 
 use crate::flatbuffer::update_types::{AccountUpdate, BlockUpdate, TransactionUpdate};
 use crate::{
@@ -138,46 +135,10 @@ pub fn serialize_block(block: &BlockUpdate) -> Vec<u8> {
 pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>, GeyserError> {
     let mut builder = FlatBufferBuilder::new();
 
-    let transaction_meta = extract_tx_meta(&transaction.transaction_meta, &mut builder);
-
-    let transaction_serialized =
-        bincode::serialize(&transaction.transaction.to_versioned_transaction())
-            .map_err(|_| GeyserError::TxSerializeError)?;
-    let transaction_serialized = Some(builder.create_vector(&transaction_serialized));
-
-    let pre_token_balances_ptr = extract_token_balances_ptr(
-        &transaction.transaction_meta.pre_token_balances,
-        &mut builder,
-    );
-    let post_token_balances_ptr = extract_token_balances_ptr(
-        &transaction.transaction_meta.post_token_balances,
-        &mut builder,
-    );
-
-    let loaded_addresses_string =
-        extract_loaded_addresses_string(transaction.transaction.message(), &mut builder);
     let signature_string = Some(builder.create_string(transaction.signature.to_string().as_str()));
 
-    let memo = solana_transaction_status::extract_memos::extract_and_fmt_memos(
-        transaction.transaction.message(),
-    )
-    .map(|m| builder.create_string(&m));
-
-    let account_keys = transaction
-        .transaction
-        .message()
-        .account_keys()
-        .iter()
-        .map(|key| builder.create_string(key.to_string().as_str()))
-        .collect::<Vec<_>>();
-    let account_keys_string = Some(builder.create_vector(account_keys.as_ref()));
-
-    let return_data = extract_return_data(&transaction.transaction_meta.return_data, &mut builder);
-
-    let inner_instructions = extract_inner_instructions(
-        &transaction.transaction_meta.inner_instructions,
-        &mut builder,
-    );
+    let tx_meta_args = extract_tx_meta_args(&transaction.transaction_meta, &mut builder);
+    let tx_info_args = extract_tx_info_args(&transaction.transaction, &mut builder)?;
 
     let transaction_info = TransactionInfo::create(
         &mut builder,
@@ -185,20 +146,20 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
             signature_string,
             is_vote: transaction.is_vote,
             slot: transaction.slot,
-            transaction: transaction_serialized,
-            transaction_meta,
-            loaded_addresses_string,
-            pre_token_balances_ptr,
-            account_keys_string,
-            memo,
-            return_data,
+            transaction: tx_info_args.transaction_serialized,
+            transaction_meta: tx_meta_args.meta,
+            loaded_addresses_string: tx_info_args.loaded_addresses_string,
+            pre_token_balances_ptr: tx_meta_args.pre_token_balances_ptr,
+            account_keys_string: tx_info_args.account_keys_string,
+            memo: tx_info_args.memo,
+            return_data: tx_meta_args.return_data,
             compute_units_consumed: transaction.transaction_meta.compute_units_consumed,
             index: transaction.index.map(|index| index as u64),
             signature: None,
             account_keys: None,
             loaded_addresses: None,
-            post_token_balances_ptr,
-            inner_instructions,
+            post_token_balances_ptr: tx_meta_args.post_token_balances_ptr,
+            inner_instructions: tx_meta_args.inner_instructions,
         },
     );
     builder.finish(transaction_info, None);
