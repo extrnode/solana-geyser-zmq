@@ -32,9 +32,9 @@ use self::{
 };
 
 #[allow(dead_code, clippy::all)]
-mod account_data_generated;
+pub mod account_data_generated;
 #[allow(dead_code, clippy::all)]
-mod account_info_generated;
+pub mod account_info_generated;
 #[allow(dead_code, clippy::all)]
 mod block_info_generated;
 #[allow(dead_code, clippy::all)]
@@ -44,14 +44,14 @@ mod metadata_generated;
 #[allow(dead_code, clippy::all)]
 mod slot_generated;
 #[allow(dead_code, clippy::all)]
-mod transaction_info_generated;
+pub mod transaction_info_generated;
 /// Struct which implements FlatBuffer serialization for accounts, block metadata and transactions data
 #[derive(Debug, Copy, Clone)]
 pub struct FlatBufferSerialization {}
 
-const BYTE_PREFIX_ACCOUNT: u8 = 0;
+pub const BYTE_PREFIX_ACCOUNT: u8 = 0;
 const BYTE_PREFIX_SLOT: u8 = 1;
-const BYTE_PREFIX_TX: u8 = 2;
+pub const BYTE_PREFIX_TX: u8 = 2;
 const BYTE_PREFIX_BLOCK: u8 = 3;
 const BYTE_PREFIX_METADATA: u8 = 4;
 

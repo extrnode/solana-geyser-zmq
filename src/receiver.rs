@@ -8,7 +8,7 @@ use crate::sender::HEADER_BYTE_SIZE;
 
 #[allow(unused)]
 pub struct TcpReceiver {
-    callback: Box<dyn Fn(Vec<u8>)>,
+    callback: Box<dyn Fn(Vec<u8>) + Send + Sync>,
     connect_timeout: Duration,
     reconnect_interval: Duration,
 }
@@ -16,7 +16,7 @@ pub struct TcpReceiver {
 #[allow(unused)]
 impl TcpReceiver {
     pub fn new(
-        callback: Box<dyn Fn(Vec<u8>) + Send>,
+        callback: Box<dyn Fn(Vec<u8>) + Send + Sync>,
         connect_timeout: Duration,
         reconnect_interval: Duration,
     ) -> TcpReceiver {

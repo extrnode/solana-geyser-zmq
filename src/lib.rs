@@ -1,8 +1,8 @@
 mod config;
 mod entrypoint;
 mod errors;
-mod flatbuffer;
+pub mod flatbuffer;
 mod geyser_plugin_hook;
 mod metrics;
-mod receiver;
-mod sender;
+pub mod receiver;
+pub mod sender;
