@@ -219,17 +219,9 @@ impl TcpSender {
 
 #[cfg(test)]
 mod tests {
-    use solana_program::message::v0::LoadedAddresses;
-    use solana_program::pubkey::Pubkey;
-    use solana_sdk::signature::Signature;
-    use solana_sdk::transaction::{SanitizedTransaction, Transaction, VersionedTransaction};
-    use solana_transaction_status::TransactionStatusMeta;
-
     use super::TcpSender;
     use super::*;
-    use crate::flatbuffer::BYTE_PREFIX_TX;
     use crate::receiver::TcpReceiver;
-    use std::str::FromStr;
     use std::time::Duration;
     use tokio::time::sleep;
 

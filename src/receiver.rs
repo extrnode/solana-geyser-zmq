@@ -1,7 +1,7 @@
 use log::{debug, error, info};
 use std::convert::TryInto;
 use std::future::Future;
-use std::io::{self, Read};
+use std::io;
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::time::{Duration, Instant};
@@ -15,6 +15,7 @@ pub type Callback = Box<dyn Fn(Vec<u8>) -> Pin<Box<dyn Future<Output = ()> + Sen
 
 pub struct TcpReceiver {
     callback: Callback,
+    #[allow(unused)]
     connect_timeout: Duration,
     reconnect_interval: Duration,
 }
