@@ -23,13 +23,13 @@ pub mod transaction_info {
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
-    pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 31;
+    pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 32;
     #[deprecated(
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
-    pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 32] = [
+    pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 33] = [
         TransactionErrorType::AccountInUse,
         TransactionErrorType::AccountLoadedTwice,
         TransactionErrorType::AccountNotFound,
@@ -62,6 +62,7 @@ pub mod transaction_info {
         TransactionErrorType::WouldExceedAccountDataTotalLimit,
         TransactionErrorType::DuplicateInstruction,
         TransactionErrorType::InsufficientFundsForRent,
+        TransactionErrorType::UnbalancedTransaction,
     ];
 
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -101,9 +102,10 @@ pub mod transaction_info {
         pub const WouldExceedAccountDataTotalLimit: Self = Self(29);
         pub const DuplicateInstruction: Self = Self(30);
         pub const InsufficientFundsForRent: Self = Self(31);
+        pub const UnbalancedTransaction: Self = Self(32);
 
         pub const ENUM_MIN: u8 = 0;
-        pub const ENUM_MAX: u8 = 31;
+        pub const ENUM_MAX: u8 = 32;
         pub const ENUM_VALUES: &'static [Self] = &[
             Self::AccountInUse,
             Self::AccountLoadedTwice,
@@ -137,6 +139,7 @@ pub mod transaction_info {
             Self::WouldExceedAccountDataTotalLimit,
             Self::DuplicateInstruction,
             Self::InsufficientFundsForRent,
+            Self::UnbalancedTransaction,
         ];
         /// Returns the variant's name or "" if unknown.
         pub fn variant_name(self) -> Option<&'static str> {
@@ -173,6 +176,7 @@ pub mod transaction_info {
                 Self::WouldExceedAccountDataTotalLimit => Some("WouldExceedAccountDataTotalLimit"),
                 Self::DuplicateInstruction => Some("DuplicateInstruction"),
                 Self::InsufficientFundsForRent => Some("InsufficientFundsForRent"),
+                Self::UnbalancedTransaction => Some("UnbalancedTransaction"),
                 _ => None,
             }
         }
