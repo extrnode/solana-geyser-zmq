@@ -1268,6 +1268,16 @@ pub fn serialize_transaction(transaction: &TransactionUpdate) -> Result<Vec<u8>,
                         },
                     ))
                 }
+                solana_sdk::transaction::TransactionError::UnbalancedTransaction => {
+                    Some(TransactionError::create(
+                        &mut builder,
+                        &TransactionErrorArgs {
+                            err_type: TransactionErrorType::UnbalancedTransaction,
+                            err_data_type: Default::default(),
+                            err_data: None,
+                        },
+                    ))
+                }
             }
         };
 

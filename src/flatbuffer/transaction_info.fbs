@@ -70,6 +70,7 @@ enum TransactionErrorType: uint8 {
     WouldExceedAccountDataTotalLimit,
     DuplicateInstruction,
     InsufficientFundsForRent,
+    UnbalancedTransaction
 }
 
 enum InstructionErrorType: uint8 {
