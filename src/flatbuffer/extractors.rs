@@ -2,15 +2,15 @@ use crate::errors::GeyserError;
 use crate::flatbuffer::common_generated::common::{Reward, RewardArgs, RewardType};
 use crate::flatbuffer::transaction_info_generated;
 use crate::flatbuffer::transaction_info_generated::transaction_info::{
-    CompiledInstruction, CompiledInstructionArgs, InnerByte, InnerByteArgs, InstructionError,
+    CompiledInstruction, CompiledInstructionArgs, InnerByte, InnerByteArgs, InnerInstructionV2,
+    InnerInstructionV2Args, InnerInstructionsV2, InnerInstructionsV2Args, InstructionError,
     InstructionErrorArgs, InstructionErrorData, InstructionErrorDataArgs,
     InstructionErrorInnerData, InstructionErrorType, LoadedAddressesString,
-    LoadedAddressesStringArgs, NewInnerInstruction, NewInnerInstructionArgs, NewInnerInstructions,
-    NewInnerInstructionsArgs, StringValue, StringValueArgs, TransactionError, TransactionErrorArgs,
-    TransactionErrorData, TransactionErrorType, TransactionReturnData, TransactionReturnDataArgs,
-    TransactionStatusMeta, TransactionStatusMetaArgs, TransactionTokenBalance,
-    TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs, UiTokenAmountPtr,
-    UiTokenAmountPtrArgs, Uint32Value, Uint32ValueArgs,
+    LoadedAddressesStringArgs, StringValue, StringValueArgs, TransactionError,
+    TransactionErrorArgs, TransactionErrorData, TransactionErrorType, TransactionReturnData,
+    TransactionReturnDataArgs, TransactionStatusMeta, TransactionStatusMetaArgs,
+    TransactionTokenBalance, TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs,
+    UiTokenAmountPtr, UiTokenAmountPtrArgs, Uint32Value, Uint32ValueArgs,
 };
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use solana_transaction_status::{Rewards, UiReturnDataEncoding, UiTransactionReturnData};
@@ -28,8 +28,7 @@ pub struct TxMetaArgs<'a> {
         Option<WIPOffset<Vector<'a, ForwardsUOffset<UiTokenAmountPtr<'a>>>>>,
     pub post_token_balances_ptr:
         Option<WIPOffset<Vector<'a, ForwardsUOffset<UiTokenAmountPtr<'a>>>>>,
-    pub inner_instructions:
-        Option<WIPOffset<Vector<'a, ForwardsUOffset<NewInnerInstructions<'a>>>>>,
+    pub inner_instructions: Option<WIPOffset<Vector<'a, ForwardsUOffset<InnerInstructionsV2<'a>>>>>,
     pub return_data: Option<WIPOffset<TransactionReturnData<'a>>>,
 }
 
@@ -158,7 +157,7 @@ fn extract_meta<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
 fn extract_inner_instructions<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     inner_instructions: &'args Option<Vec<solana_transaction_status::InnerInstructions>>,
     builder: &'mut_bldr mut FlatBufferBuilder<'bldr>,
-) -> Option<WIPOffset<Vector<'bldr, ForwardsUOffset<NewInnerInstructions<'bldr>>>>> {
+) -> Option<WIPOffset<Vector<'bldr, ForwardsUOffset<InnerInstructionsV2<'bldr>>>>> {
     if inner_instructions.is_none() {
         return None;
     }
@@ -181,9 +180,9 @@ fn extract_inner_instructions<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
                 },
             );
 
-            inner_instruction_vec.push(NewInnerInstruction::create(
+            inner_instruction_vec.push(InnerInstructionV2::create(
                 builder,
-                &NewInnerInstructionArgs {
+                &InnerInstructionV2Args {
                     instruction: Some(compiled_instruction),
                     stack_height: instruction.stack_height,
                 },
@@ -191,9 +190,9 @@ fn extract_inner_instructions<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
         }
         let instructions = Some(builder.create_vector(inner_instruction_vec.as_ref()));
 
-        inner_instructions_vec.push(NewInnerInstructions::create(
+        inner_instructions_vec.push(InnerInstructionsV2::create(
             builder,
-            &NewInnerInstructionsArgs {
+            &InnerInstructionsV2Args {
                 index: inner_instruction.index,
                 instructions,
             },
@@ -1235,6 +1234,16 @@ fn extract_tx_status<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
                 builder,
                 &TransactionErrorArgs {
                     err_type: TransactionErrorType::ResanitizationNeeded,
+                    err_data_type: Default::default(),
+                    err_data: None,
+                },
+            ))
+        }
+        solana_sdk::transaction::TransactionError::UnbalancedTransaction => {
+            Some(TransactionError::create(
+                builder,
+                &TransactionErrorArgs {
+                    err_type: TransactionErrorType::UnbalancedTransaction,
                     err_data_type: Default::default(),
                     err_data: None,
                 },

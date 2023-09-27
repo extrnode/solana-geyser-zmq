@@ -19,7 +19,7 @@ table TransactionInfo {
   loaded_addresses_string: LoadedAddressesString;
   pre_token_balances_ptr: [UiTokenAmountPtr];
   post_token_balances_ptr: [UiTokenAmountPtr];
-  inner_instructions: [NewInnerInstructions];
+  inner_instructions: [InnerInstructionsV2];
 }
 
 table LoadedAddresses {
@@ -73,7 +73,8 @@ enum TransactionErrorType: uint8 {
     InsufficientFundsForRent,
     MaxLoadedAccountsDataSizeExceeded,
     InvalidLoadedAccountsDataSizeLimit,
-    ResanitizationNeeded
+    ResanitizationNeeded,
+    UnbalancedTransaction
 }
 
 enum InstructionErrorType: uint8 {
@@ -192,12 +193,12 @@ table TransactionStatusMeta {
     rewards: [Common.Reward];
 }
 
-table NewInnerInstructions {
+table InnerInstructionsV2 {
     index: uint8;
-    instructions: [NewInnerInstruction];
+    instructions: [InnerInstructionV2];
 }
 
-table NewInnerInstruction {
+table InnerInstructionV2 {
     instruction: CompiledInstruction;
     stack_height: uint32 = null;
 }
