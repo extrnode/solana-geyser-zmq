@@ -1,13 +1,12 @@
 use crate::{
     config::Config,
     errors::GeyserError,
-    flatbuffer::{self, AccountUpdate, TransactionUpdate},
+    flatbuffer::{self, update_types::AccountUpdate, update_types::TransactionUpdate},
     metrics::Metrics,
     sender::TcpSender,
 };
 use log::info;
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
-use solana_program::pubkey::Pubkey;
 use std::{
     fmt::{Debug, Formatter},
     sync::atomic::Ordering,
@@ -16,8 +15,6 @@ use std::{
 use std::{sync::Arc, thread};
 
 const UNINIT: &str = "Geyser plugin not initialized yet!";
-const BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 0;
-const BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 1;
 
 /// This is the main object returned bu our dynamic library in entrypoint.rs
 #[derive(Default)]
@@ -143,7 +140,7 @@ impl GeyserPlugin for GeyserPluginHook {
     /// Note: The account is versioned, so you can decide how to handle the different
     /// implementations.
     fn update_account(
-        &mut self,
+        &self,
         account: ReplicaAccountInfoVersions,
         slot: u64,
         is_startup: bool,
@@ -155,41 +152,9 @@ impl GeyserPlugin for GeyserPluginHook {
         self.with_inner(
             || GeyserPluginError::AccountsUpdateError { msg: UNINIT.into() },
             |inner| {
-                let account_update = match account {
-                    ReplicaAccountInfoVersions::V0_0_1(acc) => {
-                        let key = Pubkey::new_from_array(acc.pubkey.try_into()?);
-                        let owner = Pubkey::new_from_array(acc.owner.try_into()?);
-
-                        AccountUpdate {
-                            key,
-                            lamports: acc.lamports,
-                            owner,
-                            executable: acc.executable,
-                            rent_epoch: acc.rent_epoch,
-                            data: acc.data.to_vec(),
-                            write_version: acc.write_version,
-                            slot,
-                            is_startup,
-                        }
-                    }
-                    ReplicaAccountInfoVersions::V0_0_2(acc) => {
-                        let key = Pubkey::new_from_array(acc.pubkey.try_into()?);
-                        let owner = Pubkey::new_from_array(acc.owner.try_into()?);
-
-                        AccountUpdate {
-                            key,
-                            lamports: acc.lamports,
-                            owner,
-                            executable: acc.executable,
-                            rent_epoch: acc.rent_epoch,
-                            data: acc.data.to_vec(),
-                            write_version: acc.write_version,
-                            slot,
-                            is_startup,
-                        }
-                    }
-                };
-                let data = flatbuffer::serialize_account(&account_update);
+                let data = flatbuffer::serialize_account(&AccountUpdate::from_account(
+                    account, slot, is_startup,
+                )?);
                 inner.socket.publish(data)?;
 
                 Ok(())
@@ -199,17 +164,12 @@ impl GeyserPlugin for GeyserPluginHook {
 
     /// Lifecycle: called when all accounts have been notified when the validator
     /// restores the AccountsDb from snapshots at startup.
-    fn notify_end_of_startup(&mut self) -> Result<()> {
+    fn notify_end_of_startup(&self) -> Result<()> {
         Ok(())
     }
 
     /// Event: a slot status is updated.
-    fn update_slot_status(
-        &mut self,
-        slot: u64,
-        parent: Option<u64>,
-        status: SlotStatus,
-    ) -> Result<()> {
+    fn update_slot_status(&self, slot: u64, parent: Option<u64>, status: SlotStatus) -> Result<()> {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
@@ -224,7 +184,7 @@ impl GeyserPlugin for GeyserPluginHook {
     /// Event: a transaction is updated at a slot.
     #[allow(unused_variables)]
     fn notify_transaction(
-        &mut self,
+        &self,
         transaction: ReplicaTransactionInfoVersions,
         slot: u64,
     ) -> Result<()> {
@@ -249,7 +209,7 @@ impl GeyserPlugin for GeyserPluginHook {
         )
     }
 
-    fn notify_block_metadata(&mut self, blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
+    fn notify_block_metadata(&self, blockinfo: ReplicaBlockInfoVersions) -> Result<()> {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
@@ -257,12 +217,8 @@ impl GeyserPlugin for GeyserPluginHook {
                     return Ok(());
                 }
 
-                match blockinfo {
-                    ReplicaBlockInfoVersions::V0_0_1(block) => {
-                        let data = flatbuffer::serialize_block(block);
-                        inner.socket.publish(data)?;
-                    }
-                };
+                let data = flatbuffer::serialize_block(&blockinfo.into());
+                inner.socket.publish(data)?;
 
                 Ok(())
             },
@@ -290,56 +246,5 @@ impl GeyserPlugin for GeyserPluginHook {
 impl Debug for GeyserPluginHook {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "GeyserPluginHook")
-    }
-}
-
-impl TransactionUpdate {
-    fn from_transaction(tx: ReplicaTransactionInfoVersions, slot: u64) -> Self {
-        match tx {
-            ReplicaTransactionInfoVersions::V0_0_1(tx) => TransactionUpdate {
-                signature: *tx.signature,
-                is_vote: tx.is_vote,
-                slot,
-                transaction: tx.transaction.clone(),
-                transaction_meta: tx.transaction_status_meta.clone(),
-                index: None,
-            },
-            ReplicaTransactionInfoVersions::V0_0_2(tx) => TransactionUpdate {
-                signature: *tx.signature,
-                is_vote: tx.is_vote,
-                slot,
-                transaction: tx.transaction.clone(),
-                transaction_meta: tx.transaction_status_meta.clone(),
-                index: Some(tx.index),
-            },
-        }
-    }
-
-    fn is_deploy_tx(&self) -> bool {
-        if self.transaction.message().instructions().len() != 1 {
-            return false;
-        }
-
-        let instruction = self.transaction.message().instructions().iter().next();
-        if instruction.is_none() {
-            return false;
-        }
-
-        let instruction = instruction.unwrap();
-        if instruction.data.is_empty() {
-            return false;
-        }
-
-        let account_keys = self.transaction.message().account_keys();
-        let program_id = account_keys[instruction.program_id_index as usize];
-        if program_id == solana_sdk::bpf_loader::id() {
-            return instruction.data[0] == BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE;
-        }
-
-        if program_id == solana_sdk::bpf_loader_upgradeable::id() {
-            return instruction.data[0] == BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE;
-        }
-
-        false
     }
 }
