@@ -19,6 +19,7 @@ table TransactionInfo {
   loaded_addresses_string: LoadedAddressesString;
   pre_token_balances_ptr: [UiTokenAmountPtr];
   post_token_balances_ptr: [UiTokenAmountPtr];
+  inner_instructions: [InnerInstructionsV2];
 }
 
 table LoadedAddresses {
@@ -70,6 +71,10 @@ enum TransactionErrorType: uint8 {
     WouldExceedAccountDataTotalLimit,
     DuplicateInstruction,
     InsufficientFundsForRent,
+    MaxLoadedAccountsDataSizeExceeded,
+    InvalidLoadedAccountsDataSizeLimit,
+    ResanitizationNeeded,
+    UnbalancedTransaction
 }
 
 enum InstructionErrorType: uint8 {
@@ -123,8 +128,10 @@ enum InstructionErrorType: uint8 {
     ArithmeticOverflow,
     UnsupportedSysvar,
     IllegalOwner,
-    MaxAccountsDataSizeExceeded,
+    MaxAccountsDataAllocationsExceeded,
     MaxAccountsExceeded,
+    MaxInstructionTraceLengthExceeded,
+    BuiltinProgramsMustConsumeComputeUnits
 }
 
 union TransactionErrorData {
@@ -184,6 +191,16 @@ table TransactionStatusMeta {
     pre_token_balances: [TransactionTokenBalance];
     post_token_balances: [TransactionTokenBalance];
     rewards: [Common.Reward];
+}
+
+table InnerInstructionsV2 {
+    index: uint8;
+    instructions: [InnerInstructionV2];
+}
+
+table InnerInstructionV2 {
+    instruction: CompiledInstruction;
+    stack_height: uint32 = null;
 }
 
 table InnerInstructions {
