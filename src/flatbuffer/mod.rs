@@ -24,21 +24,21 @@ use self::{
 };
 
 #[allow(dead_code, clippy::all)]
-mod account_data_generated;
+pub mod account_data_generated;
 #[allow(dead_code, clippy::all)]
-mod account_info_generated;
+pub mod account_info_generated;
 #[allow(dead_code, clippy::all)]
 mod block_info_generated;
 #[allow(dead_code, clippy::all)]
 mod common_generated;
-mod consts;
+pub mod consts;
 mod extractors;
 #[allow(dead_code, clippy::all)]
 mod metadata_generated;
 #[allow(dead_code, clippy::all)]
 mod slot_generated;
 #[allow(dead_code, clippy::all)]
-mod transaction_info_generated;
+pub mod transaction_info_generated;
 pub mod update_types;
 
 /// Struct which implements FlatBuffer serialization for accounts, block metadata and transactions data
