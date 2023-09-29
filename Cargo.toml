@@ -1,5 +1,5 @@
 [package]
-name = "solana-geyser-zmq"
+name = "solana-geyser-plugin-scaffold"
 version = "0.1.8"
 edition = "2021"
 description = "The simplest Solana Geyser Plugin ever"
