@@ -46,20 +46,6 @@ impl TcpReceiver {
     }
 
     async fn connect_and_read(&self, addr: SocketAddr) -> io::Result<()> {
-        // TODO: there's no connect with timeout in tokio's TcpStream
-        // but we can create std::net::TcpStream and convert it to tokio's one
-        // like here https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.from_std
-        //
-        // Example:
-        // let std_stream = std::net::TcpStream::connect_timeout(&addr, self.connect_timeout)?;
-        // std_stream.set_nonblocking(true)?;
-        // let stream = TcpStream::from_std(std_stream)?;
-        //
-        // Another approach is to use tokio::time::timeout like here
-        // https://stackoverflow.com/a/63465533
-        //
-        // I didn't test any of those approaches
-
         let stream = TcpStream::connect(&addr).await?;
         let mut stream = tokio::io::BufReader::new(stream);
 
