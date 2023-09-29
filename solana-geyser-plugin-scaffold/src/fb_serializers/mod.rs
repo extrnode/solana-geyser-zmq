@@ -1,44 +1,31 @@
 //! FlatBuffer serialization module
-use crate::flatbuffer::account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
-use crate::flatbuffer::consts::{
+use utils::flatbuffer::account_info_generated::account_info::{AccountInfo, AccountInfoArgs};
+use utils::flatbuffer::consts::{
     BYTE_PREFIX_ACCOUNT, BYTE_PREFIX_BLOCK, BYTE_PREFIX_METADATA, BYTE_PREFIX_SLOT, BYTE_PREFIX_TX,
 };
-use crate::flatbuffer::extractors::{extract_rewards, extract_tx_info_args, extract_tx_meta_args};
 
-use crate::flatbuffer::update_types::{AccountUpdate, BlockUpdate, TransactionUpdate};
-use crate::{
+use flatbuffers::FlatBufferBuilder;
+use solana_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
+pub use solana_program::hash::Hash;
+use update_types::{AccountUpdate, BlockUpdate, TransactionUpdate};
+use utils::{
     errors::GeyserError,
     flatbuffer::transaction_info_generated::transaction_info::{
         TransactionInfo, TransactionInfoArgs,
     },
 };
-use flatbuffers::FlatBufferBuilder;
-use solana_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
-pub use solana_program::hash::Hash;
 
-use self::account_data_generated::account_data::{AccountData, AccountDataArgs};
-use self::metadata_generated::metadata::{Metadata, MetadataArgs};
-use self::{
+use crate::fb_serializers::extractors::{
+    extract_rewards, extract_tx_info_args, extract_tx_meta_args,
+};
+use utils::flatbuffer::account_data_generated::account_data::{AccountData, AccountDataArgs};
+use utils::flatbuffer::metadata_generated::metadata::{Metadata, MetadataArgs};
+use utils::flatbuffer::{
     block_info_generated::block_info::{BlockInfo, BlockInfoArgs},
     slot_generated::slot::{Slot, SlotArgs, Status},
 };
 
-#[allow(dead_code, clippy::all)]
-pub mod account_data_generated;
-#[allow(dead_code, clippy::all)]
-pub mod account_info_generated;
-#[allow(dead_code, clippy::all)]
-mod block_info_generated;
-#[allow(dead_code, clippy::all)]
-mod common_generated;
-pub mod consts;
 mod extractors;
-#[allow(dead_code, clippy::all)]
-mod metadata_generated;
-#[allow(dead_code, clippy::all)]
-mod slot_generated;
-#[allow(dead_code, clippy::all)]
-pub mod transaction_info_generated;
 pub mod update_types;
 
 /// Struct which implements FlatBuffer serialization for accounts, block metadata and transactions data

@@ -1,7 +1,9 @@
-use crate::errors::GeyserError;
-use crate::flatbuffer::common_generated::common::{Reward, RewardArgs, RewardType};
-use crate::flatbuffer::transaction_info_generated;
-use crate::flatbuffer::transaction_info_generated::transaction_info::{
+use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
+use solana_transaction_status::{Rewards, UiReturnDataEncoding, UiTransactionReturnData};
+use utils::errors::GeyserError;
+use utils::flatbuffer::common_generated::common::{Reward, RewardArgs, RewardType};
+use utils::flatbuffer::transaction_info_generated;
+use utils::flatbuffer::transaction_info_generated::transaction_info::{
     CompiledInstruction, CompiledInstructionArgs, InnerByte, InnerByteArgs, InnerInstructionV2,
     InnerInstructionV2Args, InnerInstructionsV2, InnerInstructionsV2Args, InstructionError,
     InstructionErrorArgs, InstructionErrorData, InstructionErrorDataArgs,
@@ -12,8 +14,6 @@ use crate::flatbuffer::transaction_info_generated::transaction_info::{
     TransactionTokenBalance, TransactionTokenBalanceArgs, UiTokenAmount, UiTokenAmountArgs,
     UiTokenAmountPtr, UiTokenAmountPtrArgs, Uint32Value, Uint32ValueArgs,
 };
-use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
-use solana_transaction_status::{Rewards, UiReturnDataEncoding, UiTransactionReturnData};
 
 pub struct TxInfoArgs<'a> {
     pub transaction_serialized: Option<WIPOffset<Vector<'a, u8>>>,
