@@ -222,30 +222,36 @@ mod tests {
     use super::TcpSender;
     use super::*;
     use crate::receiver::TcpReceiver;
-    use std::thread::sleep;
     use std::time::Duration;
+    use tokio::time::sleep;
 
-    #[test]
-    fn test_sender() {
+    #[tokio::test]
+    async fn test_sender() {
         let sender = TcpSender::new(10, false, 0);
         sender.bind(9050, 100).unwrap();
 
         let received_count = Arc::new(Mutex::new(0));
         let received_count_clone = received_count.clone();
 
-        thread::spawn(move || {
+        tokio::spawn(async move {
             let receiver = TcpReceiver::new(
                 Box::new(move |_data| {
-                    let mut received_count = received_count_clone.lock().unwrap();
-                    *received_count += 1;
+                    let received_count_clone = received_count_clone.clone();
+                    Box::pin(async move {
+                        let mut received_count = received_count_clone.lock().unwrap();
+                        *received_count += 1;
+                    })
                 }),
                 Duration::from_secs(1),
                 Duration::from_secs(1),
             );
-            receiver.connect("127.0.0.1:9050".parse().unwrap()).unwrap();
+            receiver
+                .connect("127.0.0.1:9050".parse().unwrap())
+                .await
+                .unwrap();
         });
 
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_secs(1)).await;
 
         let sent_messages = 100;
         let msg = b"hello world".to_vec();
@@ -253,7 +259,7 @@ mod tests {
             sender.publish(msg.clone()).unwrap();
         }
 
-        sleep(Duration::from_secs(2));
+        sleep(Duration::from_secs(2)).await;
 
         assert_eq!(sent_messages, *received_count.lock().unwrap());
     }

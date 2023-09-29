@@ -1,10 +1,8 @@
-use crate::{
-    config::Config,
-    errors::GeyserError,
-    flatbuffer::{self, update_types::AccountUpdate, update_types::TransactionUpdate},
-    metrics::Metrics,
-    sender::TcpSender,
+use crate::fb_serializers::update_types::{AccountUpdate, TransactionUpdate};
+use crate::fb_serializers::{
+    serialize_account, serialize_block, serialize_metadata, serialize_slot, serialize_transaction,
 };
+use crate::{config::Config, metrics::Metrics};
 use log::info;
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use std::{
@@ -13,6 +11,7 @@ use std::{
     time::Duration,
 };
 use std::{sync::Arc, thread};
+use utils::{errors::GeyserError, sender::TcpSender};
 
 const UNINIT: &str = "Geyser plugin not initialized yet!";
 
@@ -117,7 +116,7 @@ impl GeyserPlugin for GeyserPluginHook {
         self.0 = Some(plugin.clone());
 
         thread::spawn(move || loop {
-            let data = flatbuffer::serialize_metadata(metrics.send_errs.load(Ordering::Relaxed));
+            let data = serialize_metadata(metrics.send_errs.load(Ordering::Relaxed));
             if let Err(e) = plugin.socket.publish(data) {
                 info!("{}", e);
             }
@@ -152,9 +151,8 @@ impl GeyserPlugin for GeyserPluginHook {
         self.with_inner(
             || GeyserPluginError::AccountsUpdateError { msg: UNINIT.into() },
             |inner| {
-                let data = flatbuffer::serialize_account(&AccountUpdate::from_account(
-                    account, slot, is_startup,
-                )?);
+                let data =
+                    serialize_account(&AccountUpdate::from_account(account, slot, is_startup)?);
                 inner.socket.publish(data)?;
 
                 Ok(())
@@ -173,7 +171,7 @@ impl GeyserPlugin for GeyserPluginHook {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
-                let data = flatbuffer::serialize_slot(slot, parent, status);
+                let data = serialize_slot(slot, parent, status);
                 inner.socket.publish(data)?;
 
                 Ok(())
@@ -201,7 +199,7 @@ impl GeyserPlugin for GeyserPluginHook {
                     return Ok(());
                 }
 
-                let data = flatbuffer::serialize_transaction(&tx_update)?;
+                let data = serialize_transaction(&tx_update)?;
                 inner.socket.publish(data)?;
 
                 Ok(())
@@ -217,7 +215,7 @@ impl GeyserPlugin for GeyserPluginHook {
                     return Ok(());
                 }
 
-                let data = flatbuffer::serialize_block(&blockinfo.into());
+                let data = serialize_block(&blockinfo.into());
                 inner.socket.publish(data)?;
 
                 Ok(())
