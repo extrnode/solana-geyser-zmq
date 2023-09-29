@@ -1,10 +1,8 @@
 use crate::{
     config::Config,
-    errors::GeyserError,
-    flatbuffer::{self, update_types::AccountUpdate, update_types::TransactionUpdate},
     metrics::Metrics,
-    sender::TcpSender,
 };
+use utils::{errors::GeyserError, flatbuffer::{self, update_types::AccountUpdate, update_types::TransactionUpdate}, sender::TcpSender};
 use log::info;
 use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use std::{
