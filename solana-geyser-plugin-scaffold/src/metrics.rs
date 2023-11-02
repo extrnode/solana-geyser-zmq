@@ -6,6 +6,7 @@ pub struct Metrics {
     pub serialize_errs: std::sync::atomic::AtomicU64,
     pub sender_lock_errs: std::sync::atomic::AtomicU64,
     pub conn_lock_errs: std::sync::atomic::AtomicU64,
+    pub cache_lock_errs: std::sync::atomic::AtomicU64,
     pub untyped_errs: std::sync::atomic::AtomicU64,
 }
 
@@ -17,6 +18,7 @@ impl Metrics {
             serialize_errs: std::sync::atomic::AtomicU64::new(0),
             sender_lock_errs: std::sync::atomic::AtomicU64::new(0),
             conn_lock_errs: std::sync::atomic::AtomicU64::new(0),
+            cache_lock_errs: std::sync::atomic::AtomicU64::new(0),
             untyped_errs: std::sync::atomic::AtomicU64::new(0),
         })
     }
@@ -30,6 +32,7 @@ impl std::fmt::Display for Metrics {
             .field("serialize_errs", &self.serialize_errs)
             .field("sender_lock_errs", &self.sender_lock_errs)
             .field("conn_lock_errs", &self.conn_lock_errs)
+            .field("cache_lock_errs", &self.cache_lock_errs)
             .field("untyped_errs", &self.untyped_errs)
             .finish()
     }

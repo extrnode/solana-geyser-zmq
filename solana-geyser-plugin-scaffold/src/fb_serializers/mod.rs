@@ -67,6 +67,7 @@ pub fn serialize_account(account: &AccountUpdate) -> Vec<u8> {
     build_output(BYTE_PREFIX_ACCOUNT, builder.finished_data().to_vec())
 }
 
+#[allow(dead_code)]
 pub fn serialize_slot(slot: u64, parent: Option<u64>, status: SlotStatus) -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
 

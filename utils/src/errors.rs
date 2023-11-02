@@ -8,6 +8,9 @@ pub enum GeyserError {
     #[error("tcp send error due to subscriber disconnect")]
     TcpDisconnects(u64),
 
+    #[error("cannot acquire cache lock")]
+    CacheLockError,
+
     #[error("cannot acquire sender lock")]
     SenderLockError,
 

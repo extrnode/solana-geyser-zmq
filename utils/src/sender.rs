@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::net::TcpListener;
 use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use std::thread;
 use uuid::Uuid;
 
@@ -67,14 +67,7 @@ impl TcpSender {
         }
     }
 
-    pub fn publish(&self, message: Vec<u8>) -> Result<(), GeyserError> {
-        let mut buffer = self
-            .buffer
-            .lock()
-            .map_err(|_| GeyserError::SenderLockError)?;
-
-        buffer.append(message);
-
+    fn flush(&self, buffer: &mut MutexGuard<'_, TcpBuffer>) -> Result<(), GeyserError> {
         if buffer.total_bytesize < self.batch_max_bytes {
             return Ok(());
         }
@@ -95,6 +88,26 @@ impl TcpSender {
         }
 
         Ok(())
+    }
+
+    pub fn maybe_flush(&self) -> Result<(), GeyserError> {
+        let mut buffer = self
+            .buffer
+            .lock()
+            .map_err(|_| GeyserError::SenderLockError)?;
+
+        self.flush(&mut buffer)
+    }
+
+    pub fn publish(&self, message: Vec<u8>) -> Result<(), GeyserError> {
+        let mut buffer = self
+            .buffer
+            .lock()
+            .map_err(|_| GeyserError::SenderLockError)?;
+
+        buffer.append(message);
+
+        self.flush(&mut buffer)
     }
 
     pub fn wait_min_subscribers(&self) -> Result<(), GeyserError> {
