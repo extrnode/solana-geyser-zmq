@@ -25,9 +25,11 @@ const CACHE_TTL_SECS: u64 = 20 * 60;
 #[derive(Default)]
 pub struct GeyserPluginHook(Option<Arc<Inner>>);
 
+type CacheEntry = Arc<RwLock<HashMap<HashKey, Vec<u8>>>>;
+
 pub struct Inner {
     socket: TcpSender,
-    cache: Cache<u64, Arc<RwLock<HashMap<HashKey, Vec<u8>>>>>,
+    cache: Cache<u64, CacheEntry>,
     metrics: Arc<Metrics>,
     config: Config,
 }
