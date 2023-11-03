@@ -7,6 +7,12 @@ use solana_sdk::signature::Signature;
 const BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 0;
 const BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 1;
 
+const NFT_KEYS: &[&str] = &[
+    "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY",
+    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+];
+
 pub struct AccountUpdate {
     /// The account's public key
     pub key: Pubkey,
@@ -85,6 +91,14 @@ impl AccountUpdate {
             }
         }
     }
+
+    pub fn is_nft_account(&self) -> bool {
+        if NFT_KEYS.contains(&self.key.to_string().as_str()) {
+            return true;
+        }
+
+        NFT_KEYS.contains(&self.owner.to_string().as_str())
+    }
 }
 
 pub struct TransactionUpdate {
@@ -141,6 +155,17 @@ impl TransactionUpdate {
 
         if program_id == solana_sdk::bpf_loader_upgradeable::id() {
             return instruction.data[0] == BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE;
+        }
+
+        false
+    }
+
+    pub fn is_nft_transaction(&self) -> bool {
+        let account_keys = self.transaction.message().account_keys();
+        for account_key in account_keys.iter() {
+            if NFT_KEYS.contains(&account_key.to_string().as_str()) {
+                return true;
+            }
         }
 
         false

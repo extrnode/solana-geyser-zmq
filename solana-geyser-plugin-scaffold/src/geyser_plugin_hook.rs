@@ -126,7 +126,10 @@ impl GeyserPlugin for GeyserPluginHook {
             || GeyserPluginError::AccountsUpdateError { msg: UNINIT.into() },
             |inner| {
                 let acc_update = &AccountUpdate::from_account(account, slot, is_startup)?;
-                // TODO: add filter by accounts from config
+
+                if !acc_update.is_nft_account() {
+                    return Ok(());
+                }
 
                 let data = serialize_account(acc_update);
 
@@ -204,7 +207,9 @@ impl GeyserPlugin for GeyserPluginHook {
                     return Ok(());
                 }
 
-                // TODO: add filter by programs from config
+                if !tx_update.is_nft_transaction() {
+                    return Ok(());
+                }
 
                 let data = serialize_transaction(&tx_update)?;
 
