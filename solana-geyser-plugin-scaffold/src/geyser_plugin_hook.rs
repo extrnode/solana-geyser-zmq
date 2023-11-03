@@ -167,7 +167,7 @@ impl GeyserPlugin for GeyserPluginHook {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
-                if status != SlotStatus::Confirmed {
+                if status != SlotStatus::Rooted {
                     return Ok(());
                 }
 
