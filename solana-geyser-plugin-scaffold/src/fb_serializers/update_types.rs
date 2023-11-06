@@ -8,9 +8,10 @@ const BPF_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 0;
 const BPF_UPGRADEABLE_LOADER_WRITE_INSTRUCTION_FIRST_BYTE: u8 = 1;
 
 const NFT_KEYS: &[&str] = &[
-    "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY",
-    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
-    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY", // bubblegum
+    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",  // mpl token metadata
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",  // spl token
+    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",  // spl token 2022
 ];
 
 pub struct AccountUpdate {
