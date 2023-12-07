@@ -23,13 +23,13 @@ pub mod transaction_info {
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
-    pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 35;
+    pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 36;
     #[deprecated(
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
-    pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 36] = [
+    pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 37] = [
         TransactionErrorType::AccountInUse,
         TransactionErrorType::AccountLoadedTwice,
         TransactionErrorType::AccountNotFound,
@@ -66,6 +66,7 @@ pub mod transaction_info {
         TransactionErrorType::InvalidLoadedAccountsDataSizeLimit,
         TransactionErrorType::ResanitizationNeeded,
         TransactionErrorType::UnbalancedTransaction,
+        TransactionErrorType::ProgramExecutionTemporarilyRestricted,
     ];
 
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -109,9 +110,10 @@ pub mod transaction_info {
         pub const InvalidLoadedAccountsDataSizeLimit: Self = Self(33);
         pub const ResanitizationNeeded: Self = Self(34);
         pub const UnbalancedTransaction: Self = Self(35);
+        pub const ProgramExecutionTemporarilyRestricted: Self = Self(36);
 
         pub const ENUM_MIN: u8 = 0;
-        pub const ENUM_MAX: u8 = 35;
+        pub const ENUM_MAX: u8 = 36;
         pub const ENUM_VALUES: &'static [Self] = &[
             Self::AccountInUse,
             Self::AccountLoadedTwice,
@@ -149,6 +151,7 @@ pub mod transaction_info {
             Self::InvalidLoadedAccountsDataSizeLimit,
             Self::ResanitizationNeeded,
             Self::UnbalancedTransaction,
+            Self::ProgramExecutionTemporarilyRestricted,
         ];
         /// Returns the variant's name or "" if unknown.
         pub fn variant_name(self) -> Option<&'static str> {
@@ -193,6 +196,9 @@ pub mod transaction_info {
                 }
                 Self::ResanitizationNeeded => Some("ResanitizationNeeded"),
                 Self::UnbalancedTransaction => Some("UnbalancedTransaction"),
+                Self::ProgramExecutionTemporarilyRestricted => {
+                    Some("ProgramExecutionTemporarilyRestricted")
+                }
                 _ => None,
             }
         }
