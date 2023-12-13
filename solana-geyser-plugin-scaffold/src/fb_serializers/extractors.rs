@@ -1249,27 +1249,5 @@ fn extract_tx_status<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
                 },
             ))
         }
-        solana_sdk::transaction::TransactionError::ProgramExecutionTemporarilyRestricted {
-            account_index,
-        } => {
-            let val = Some(
-                InnerByte::create(
-                    builder,
-                    &InnerByteArgs {
-                        inner_byte: account_index,
-                    },
-                )
-                .as_union_value(),
-            );
-
-            Some(TransactionError::create(
-                builder,
-                &TransactionErrorArgs {
-                    err_type: TransactionErrorType::ProgramExecutionTemporarilyRestricted,
-                    err_data_type: TransactionErrorData::InnerByte,
-                    err_data: val,
-                },
-            ))
-        }
     }
 }
