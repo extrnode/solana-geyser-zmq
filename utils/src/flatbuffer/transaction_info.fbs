@@ -74,7 +74,8 @@ enum TransactionErrorType: uint8 {
     MaxLoadedAccountsDataSizeExceeded,
     InvalidLoadedAccountsDataSizeLimit,
     ResanitizationNeeded,
-    UnbalancedTransaction
+    UnbalancedTransaction,
+    ProgramExecutionTemporarilyRestricted
 }
 
 enum InstructionErrorType: uint8 {
