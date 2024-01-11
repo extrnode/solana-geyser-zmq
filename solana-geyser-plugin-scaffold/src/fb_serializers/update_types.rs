@@ -220,7 +220,7 @@ impl<'a> From<ReplicaBlockInfoVersions<'a>> for BlockUpdate<'a> {
                 block_height: block.block_height,
                 executed_transaction_count: Some(block.executed_transaction_count),
                 entry_count: Some(block.entry_count),
-            }
+            },
         }
     }
 }
