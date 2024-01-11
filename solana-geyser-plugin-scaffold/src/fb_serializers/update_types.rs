@@ -156,6 +156,7 @@ pub struct BlockUpdate<'a> {
     pub block_time: Option<i64>,
     pub block_height: Option<u64>,
     pub executed_transaction_count: Option<u64>,
+    pub entry_count: Option<u64>,
 }
 
 impl<'a> From<ReplicaBlockInfoVersions<'a>> for BlockUpdate<'a> {
@@ -170,6 +171,7 @@ impl<'a> From<ReplicaBlockInfoVersions<'a>> for BlockUpdate<'a> {
                 block_time: block.block_time,
                 block_height: block.block_height,
                 executed_transaction_count: None,
+                entry_count: None,
             },
             ReplicaBlockInfoVersions::V0_0_2(block) => BlockUpdate {
                 parent_slot: Some(block.parent_slot),
@@ -180,6 +182,18 @@ impl<'a> From<ReplicaBlockInfoVersions<'a>> for BlockUpdate<'a> {
                 block_time: block.block_time,
                 block_height: block.block_height,
                 executed_transaction_count: Some(block.executed_transaction_count),
+                entry_count: None,
+            },
+            ReplicaBlockInfoVersions::V0_0_3(block) => BlockUpdate {
+                parent_slot: Some(block.parent_slot),
+                parent_blockhash: Some(block.parent_blockhash),
+                slot: block.slot,
+                blockhash: block.blockhash,
+                rewards: block.rewards,
+                block_time: block.block_time,
+                block_height: block.block_height,
+                executed_transaction_count: Some(block.executed_transaction_count),
+                entry_count: Some(block.entry_count),
             },
         }
     }

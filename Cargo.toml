@@ -3,3 +3,4 @@ members = [
     "solana-geyser-plugin-scaffold",
     "utils"
 ]
+resolver = "2"

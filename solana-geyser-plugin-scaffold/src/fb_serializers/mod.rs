@@ -6,7 +6,6 @@ use utils::flatbuffer::consts::{
 
 use flatbuffers::FlatBufferBuilder;
 use solana_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
-pub use solana_program::hash::Hash;
 use update_types::{AccountUpdate, BlockUpdate, TransactionUpdate};
 use utils::{
     errors::GeyserError,
