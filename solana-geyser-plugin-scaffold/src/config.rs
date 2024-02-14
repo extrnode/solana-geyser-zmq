@@ -21,6 +21,8 @@ pub struct Config {
 
     pub skip_vote_txs: bool,
     pub skip_deploy_txs: bool,
+
+    pub cache_until_finalized: bool,
 }
 
 impl Config {

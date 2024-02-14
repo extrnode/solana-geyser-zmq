@@ -7,5 +7,6 @@
     "send_accounts": true,
     "send_blocks": true,
     "skip_vote_txs": true,
-    "skip_deploy_txs": true
+    "skip_deploy_txs": true,
+    "cache_until_finalized": false
 }
