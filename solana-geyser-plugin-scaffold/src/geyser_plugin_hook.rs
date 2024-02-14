@@ -1,6 +1,6 @@
 use crate::fb_serializers::update_types::{AccountUpdate, TransactionUpdate};
 use crate::fb_serializers::{
-    serialize_account, serialize_block, serialize_metadata, serialize_transaction,
+    serialize_account, serialize_block, serialize_metadata, serialize_slot, serialize_transaction,
 };
 use crate::{config::Config, metrics::Metrics};
 use log::info;
@@ -132,6 +132,10 @@ impl GeyserPlugin for GeyserPluginHook {
                 }
 
                 let data = serialize_account(acc_update);
+                if !inner.config.cache_until_finalized {
+                    inner.socket.publish(data)?;
+                    return Ok(());
+                }
 
                 let slot_data = inner
                     .cache
@@ -158,15 +162,16 @@ impl GeyserPlugin for GeyserPluginHook {
     }
 
     /// Event: a slot status is updated.
-    fn update_slot_status(
-        &self,
-        slot: u64,
-        _parent: Option<u64>,
-        status: SlotStatus,
-    ) -> Result<()> {
+    fn update_slot_status(&self, slot: u64, parent: Option<u64>, status: SlotStatus) -> Result<()> {
         self.with_inner(
             || GeyserPluginError::SlotStatusUpdateError { msg: UNINIT.into() },
             |inner| {
+                if !inner.config.cache_until_finalized {
+                    let data = serialize_slot(slot, parent, status);
+                    inner.socket.publish(data)?;
+                    return Ok(());
+                }
+
                 if status != SlotStatus::Rooted {
                     return Ok(());
                 }
@@ -212,6 +217,10 @@ impl GeyserPlugin for GeyserPluginHook {
                 }
 
                 let data = serialize_transaction(&tx_update)?;
+                if !inner.config.cache_until_finalized {
+                    inner.socket.publish(data)?;
+                    return Ok(());
+                }
 
                 let slot_data = inner
                     .cache
@@ -242,6 +251,10 @@ impl GeyserPlugin for GeyserPluginHook {
 
                 let block_update = &blockinfo.into();
                 let data = serialize_block(block_update);
+                if !inner.config.cache_until_finalized {
+                    inner.socket.publish(data)?;
+                    return Ok(());
+                }
 
                 let slot_data = inner
                     .cache
