@@ -12,6 +12,7 @@ const NFT_KEYS: &[&str] = &[
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",  // mpl token metadata
     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",  // spl token
     "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",  // spl token 2022
+    "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d", // mpl core
 ];
 
 pub struct AccountUpdate {
