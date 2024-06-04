@@ -91,7 +91,7 @@ impl GeyserPlugin for GeyserPluginHook {
     /// of the config file. The config must be in JSON format and
     /// include a field "libpath" indicating the full path
     /// name of the shared library implementing this interface.
-    fn on_load(&mut self, config_file: &str) -> Result<()> {
+    fn on_load(&mut self, config_file: &str, _is_reload: bool) -> Result<()> {
         solana_logger::setup_with_default("info");
 
         let metrics = Metrics::new_rc();
