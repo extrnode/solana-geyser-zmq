@@ -3,9 +3,9 @@ use crate::fb_serializers::{
     serialize_account, serialize_block, serialize_metadata, serialize_slot, serialize_transaction,
 };
 use crate::{config::Config, metrics::Metrics};
+use agave_geyser_plugin_interface::geyser_plugin_interface::*;
 use log::info;
 use mini_moka::sync::Cache;
-use solana_geyser_plugin_interface::geyser_plugin_interface::*;
 use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
 use std::collections::HashMap;
@@ -42,7 +42,7 @@ pub enum HashKey {
 }
 
 /// Implementation of GeyserPlugin trait/interface
-/// https://docs.rs/solana-geyser-plugin-interface/latest/solana_geyser_plugin_interface/geyser_plugin_interface/trait.GeyserPlugin.html
+/// https://docs.rs/agave-geyser-plugin-interface/latest/agave_geyser_plugin_interface/geyser_plugin_interface/trait.GeyserPlugin.html
 impl GeyserPlugin for GeyserPluginHook {
     fn name(&self) -> &'static str {
         "GeyserPluginHook"
@@ -108,8 +108,9 @@ impl GeyserPlugin for GeyserPluginHook {
 
     /// Event: an account has been updated at slot
     /// - When `is_startup` is true, it indicates the account is loaded from
-    /// snapshots when the validator starts up.
+    ///     snapshots when the validator starts up.
     /// - When `is_startup` is false, the account is updated during transaction processing.
+    ///
     /// Note: The account is versioned, so you can decide how to handle the different
     /// implementations.
     fn update_account(

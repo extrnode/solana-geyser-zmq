@@ -3,7 +3,7 @@
 SHELL := /bin/bash
 
 build:
-	@docker run --rm -v $(PWD):/app -w /app rust:1.60.0 cargo b --release
+	@docker run --rm -v $(PWD):/app -w /app rust:1.83.0 cargo b --release
 
 start-docker:
 	@docker build . -t geyser-plugin

@@ -4,8 +4,8 @@ use utils::flatbuffer::consts::{
     BYTE_PREFIX_ACCOUNT, BYTE_PREFIX_BLOCK, BYTE_PREFIX_METADATA, BYTE_PREFIX_SLOT, BYTE_PREFIX_TX,
 };
 
+use agave_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
 use flatbuffers::FlatBufferBuilder;
-use solana_geyser_plugin_interface::geyser_plugin_interface::SlotStatus;
 use update_types::{AccountUpdate, BlockUpdate, TransactionUpdate};
 use utils::{
     errors::GeyserError,
@@ -27,7 +27,8 @@ use utils::flatbuffer::{
 mod extractors;
 pub mod update_types;
 
-/// Struct which implements FlatBuffer serialization for accounts, block metadata and transactions data
+/// Struct which implements FlatBuffer serialization for accounts, block metadata and transactions data\
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct FlatBufferSerialization {}
 

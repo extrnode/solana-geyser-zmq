@@ -23,13 +23,13 @@ pub mod transaction_info {
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
-    pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 36;
+    pub const ENUM_MAX_TRANSACTION_ERROR_TYPE: u8 = 38;
     #[deprecated(
         since = "2.0.0",
         note = "Use associated constants instead. This will no longer be generated in 2021."
     )]
     #[allow(non_camel_case_types)]
-    pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 37] = [
+    pub const ENUM_VALUES_TRANSACTION_ERROR_TYPE: [TransactionErrorType; 38] = [
         TransactionErrorType::AccountInUse,
         TransactionErrorType::AccountLoadedTwice,
         TransactionErrorType::AccountNotFound,
@@ -67,6 +67,7 @@ pub mod transaction_info {
         TransactionErrorType::ResanitizationNeeded,
         TransactionErrorType::UnbalancedTransaction,
         TransactionErrorType::ProgramExecutionTemporarilyRestricted,
+        TransactionErrorType::ProgramCacheHitMaxLimit,
     ];
 
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -111,9 +112,10 @@ pub mod transaction_info {
         pub const ResanitizationNeeded: Self = Self(34);
         pub const UnbalancedTransaction: Self = Self(35);
         pub const ProgramExecutionTemporarilyRestricted: Self = Self(36);
+        pub const ProgramCacheHitMaxLimit: Self = Self(37);
 
         pub const ENUM_MIN: u8 = 0;
-        pub const ENUM_MAX: u8 = 36;
+        pub const ENUM_MAX: u8 = 37;
         pub const ENUM_VALUES: &'static [Self] = &[
             Self::AccountInUse,
             Self::AccountLoadedTwice,
@@ -152,6 +154,7 @@ pub mod transaction_info {
             Self::ResanitizationNeeded,
             Self::UnbalancedTransaction,
             Self::ProgramExecutionTemporarilyRestricted,
+            Self::ProgramCacheHitMaxLimit,
         ];
         /// Returns the variant's name or "" if unknown.
         pub fn variant_name(self) -> Option<&'static str> {
@@ -199,6 +202,7 @@ pub mod transaction_info {
                 Self::ProgramExecutionTemporarilyRestricted => {
                     Some("ProgramExecutionTemporarilyRestricted")
                 }
+                Self::ProgramCacheHitMaxLimit => Some("ProgramCacheHitMaxLimit"),
                 _ => None,
             }
         }

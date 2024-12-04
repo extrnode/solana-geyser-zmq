@@ -1271,5 +1271,15 @@ fn extract_tx_status<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
                 },
             ))
         }
+        solana_sdk::transaction::TransactionError::ProgramCacheHitMaxLimit => {
+            Some(TransactionError::create(
+                builder,
+                &TransactionErrorArgs {
+                    err_type: TransactionErrorType::ProgramCacheHitMaxLimit,
+                    err_data_type: Default::default(),
+                    err_data: None,
+                },
+            ))
+        }
     }
 }
